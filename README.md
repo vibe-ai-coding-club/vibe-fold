@@ -40,7 +40,7 @@ content/
   _templates/                  # same shape as a volume; copy a chapter or the whole folder
     volume.yaml
     ch-untitled/
-  vol-01-seolhwa/              # Vol.1 설화 — open call, coming soon
+  vol-01-seolhwa/              # Vol.1 world myths & legends — open call, coming soon
     volume.yaml
   vol-00-sokdam/               # Vol.0 속담 — example volume
     volume.yaml
