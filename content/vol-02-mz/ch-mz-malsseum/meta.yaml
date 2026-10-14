@@ -1,0 +1,12 @@
+id: ch-mz-malsseum
+slug: mz-malsseum
+title: 오늘의 말씀
+creator: anveloper
+description: |
+  번아웃과 읽씹의 시대에 내려온 말씀 열네 편을, 한 줄씩 넘겨 읽는 시집입니다.
+
+  누를 때마다 다음 줄이 떠오르고 한 편이 끝나면 배경의 색이 갈아탑니다. 위트로 시작해 새벽에서 끝납니다.
+# 가로 3:2 ~ 16:10. 세로를 넣으면 카드에서 위아래가 잘립니다.
+thumbnail: thumb.webp
+links:
+  github: https://github.com/anveloper
