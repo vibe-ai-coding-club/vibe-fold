@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<title>오늘의 말씀 — 한 줄씩 넘겨 읽는 MZ 시집</title>
+		<link rel="stylesheet" href="style.css" />
+	</head>
+	<body>
+		<canvas id="bg" aria-hidden="true"></canvas>
+
+		<main
+			class="stage"
+			id="stage"
+			role="button"
+			tabindex="0"
+			aria-label="누르면 다음 줄이 나타납니다"
+		>
+			<div class="verse" id="verse" aria-live="polite"></div>
+			<p class="hint" id="hint">눌러서 한 줄씩</p>
+			<footer class="meter">
+				<span id="page">01 / 14</span>
+				<span class="meter__bar"><i id="bar"></i></span>
+			</footer>
+		</main>
+
+		<div class="outro" id="outro">
+			<p class="outro__mark">끝</p>
+			<p class="outro__count">오늘의 말씀은<br />여기까지입니다</p>
+			<button class="again" id="again" type="button">처음부터</button>
+		</div>
+
+		<noscript>
+			<p style="padding: 6rem 1.5rem; text-align: center">이 작품은 자바스크립트로 움직입니다.</p>
+		</noscript>
+
+		<script src="aphorisms.js"></script>
+		<script src="background.js"></script>
+		<script src="app.js"></script>
+	</body>
+</html>

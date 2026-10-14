@@ -1,0 +1,244 @@
+@font-face {
+	font-family: 'Gowun Batang';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('fonts/gowun-batang-400.woff2') format('woff2');
+}
+
+:root {
+	--ink: #f2ece4;
+	--dim: rgba(242, 236, 228, 0.42);
+	--ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+	/* 위에 높이 74px 짜리 내비게이션이 떠 있다. 글이 그 아래에서 시작하게 민다 */
+	--chrome: 74px;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	background: #0a0e1a;
+	color: var(--ink);
+	font-family:
+		'Gowun Batang', 'AppleMyungjo', 'Apple SD Gothic Neo', 'Nanum Myeongjo', Batang, serif;
+	-webkit-font-smoothing: antialiased;
+	-webkit-tap-highlight-color: transparent;
+}
+
+#bg {
+	position: fixed;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	display: block;
+	z-index: 0;
+}
+
+/* WebGL 을 못 쓰는 환경. 색만이라도 격언 따라 바뀌게 한다 */
+body.is-flat #bg {
+	display: none;
+}
+
+body.is-flat {
+	background: radial-gradient(
+		130% 100% at 50% 42%,
+		var(--flat-2, #3b4a8c) 0%,
+		var(--flat-1, #0a0e1a) 72%
+	);
+	transition: background 1.6s var(--ease);
+}
+
+.stage {
+	position: relative;
+	z-index: 1;
+	width: 100%;
+	height: 100%;
+	display: grid;
+	grid-template-rows: 1fr auto;
+	padding: calc(var(--chrome) + 1rem) clamp(1.25rem, 6vw, 4rem) clamp(1.25rem, 4vh, 2.5rem);
+	cursor: pointer;
+	user-select: none;
+	outline: none;
+}
+
+.stage:focus-visible .verse::after {
+	content: '';
+	position: absolute;
+	inset: -1.25rem -1rem;
+	border: 1px solid var(--dim);
+	border-radius: 0.5rem;
+	pointer-events: none;
+}
+
+.verse {
+	position: relative;
+	align-self: center;
+	justify-self: center;
+	width: 100%;
+	max-width: 36rem;
+	display: flex;
+	flex-direction: column;
+	gap: clamp(0.7rem, 2.2vh, 1.15rem);
+	text-align: center;
+	transition: opacity 0.42s var(--ease);
+}
+
+.verse.is-leaving {
+	opacity: 0;
+}
+
+.line {
+	margin: 0;
+	font-size: clamp(1.35rem, 5.2vw, 2.2rem);
+	font-weight: 400;
+	line-height: 1.62;
+	letter-spacing: -0.015em;
+	word-break: keep-all;
+	text-wrap: balance;
+	text-shadow: 0 0.08em 1.4em rgba(0, 0, 0, 0.55);
+	opacity: 0;
+	transform: translateY(0.7em);
+	transition:
+		opacity 0.9s var(--ease),
+		transform 0.9s var(--ease);
+}
+
+.line.is-in {
+	opacity: 1;
+	transform: none;
+}
+
+/* 지난 줄은 조금 물러서서, 지금 줄이 앞에 오게 한다 */
+.line.is-past {
+	opacity: 0.46;
+}
+
+.meter {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.85rem;
+	font-size: 0.72rem;
+	letter-spacing: 0.22em;
+	color: var(--dim);
+	font-variant-numeric: tabular-nums;
+}
+
+.meter__bar {
+	position: relative;
+	width: clamp(3.5rem, 18vw, 7rem);
+	height: 1px;
+	background: rgba(242, 236, 228, 0.18);
+	overflow: hidden;
+}
+
+.meter__bar i {
+	position: absolute;
+	inset: 0 auto 0 0;
+	width: 0;
+	background: var(--ink);
+	transition: width 0.6s var(--ease);
+}
+
+.hint {
+	position: absolute;
+	left: 50%;
+	bottom: clamp(3.6rem, 11vh, 6rem);
+	transform: translateX(-50%);
+	font-size: 0.78rem;
+	letter-spacing: 0.3em;
+	color: var(--dim);
+	white-space: nowrap;
+	pointer-events: none;
+	animation: breathe 3.4s ease-in-out infinite;
+	transition: opacity 0.5s var(--ease);
+}
+
+.hint.is-gone {
+	opacity: 0;
+}
+
+@keyframes breathe {
+	0%,
+	100% {
+		opacity: 0.32;
+	}
+	50% {
+		opacity: 0.72;
+	}
+}
+
+.outro {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	display: grid;
+	place-content: center;
+	gap: 1.6rem;
+	justify-items: center;
+	text-align: center;
+	padding: var(--chrome) 1.5rem 1.5rem;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.8s var(--ease);
+}
+
+.outro.is-in {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.outro__mark {
+	font-size: clamp(1.1rem, 4vw, 1.5rem);
+	letter-spacing: 0.5em;
+	text-indent: 0.5em;
+	color: var(--dim);
+}
+
+.outro__count {
+	font-size: clamp(1.5rem, 5.5vw, 2.1rem);
+	line-height: 1.6;
+	word-break: keep-all;
+}
+
+.again {
+	appearance: none;
+	background: transparent;
+	border: 1px solid rgba(242, 236, 228, 0.3);
+	border-radius: 999px;
+	color: var(--ink);
+	font-family: inherit;
+	font-size: 0.85rem;
+	letter-spacing: 0.2em;
+	padding: 0.7rem 1.6rem;
+	cursor: pointer;
+	transition:
+		border-color 0.3s var(--ease),
+		background 0.3s var(--ease);
+}
+
+.again:hover,
+.again:focus-visible {
+	border-color: var(--ink);
+	background: rgba(242, 236, 228, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.line,
+	.verse,
+	.outro,
+	.meter__bar i {
+		transition-duration: 0.01ms;
+	}
+	.hint {
+		animation: none;
+		opacity: 0.5;
+	}
+}
