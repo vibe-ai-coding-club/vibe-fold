@@ -161,7 +161,9 @@ body.is-flat {
 	transition: opacity 0.5s var(--ease);
 }
 
+/* 애니메이션이 opacity 를 계속 덮어쓰므로, 숨길 때는 애니메이션부터 끈다 */
 .hint.is-gone {
+	animation: none;
 	opacity: 0;
 }
 
