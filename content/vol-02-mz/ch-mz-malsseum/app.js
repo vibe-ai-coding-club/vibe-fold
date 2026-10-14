@@ -14,6 +14,8 @@
 	var bar = document.getElementById('bar');
 	var outro = document.getElementById('outro');
 	var again = document.getElementById('again');
+	var cover = document.getElementById('cover');
+	var muteBtn = document.getElementById('mute');
 
 	var reduced = !!(
 		window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -26,6 +28,7 @@
 	var touched = false;
 	var timer = null;
 	var away = false; /* 탭이 뒤로 가면 멈춘다 */
+	var started = false; /* 표지를 걷기 전에는 아무것도 움직이지 않는다 */
 
 	var live = Backdrop.start(document.getElementById('bg'), data[0].tone, reduced);
 	if (!live) body.classList.add('is-flat');
@@ -67,6 +70,7 @@
 		verse.classList.remove('is-leaving');
 		shown = 0;
 		paintTone(data[index].tone);
+		Chime.setMood(index);
 		paintMeter();
 	}
 
@@ -76,6 +80,7 @@
 		for (var i = 0; i < shown; i++) nodes[i].classList.add('is-past');
 		shown++;
 		if (live) Backdrop.pulse(0.3);
+		Chime.ping(shown - 1);
 		paintMeter();
 		planNext();
 	}
@@ -126,6 +131,7 @@
 		locked = true;
 		stopTimer();
 		verse.classList.add('is-leaving');
+		Chime.close();
 		chrome('show');
 		window.setTimeout(
 			function () {
@@ -137,7 +143,7 @@
 	}
 
 	function advance() {
-		if (locked || done) return;
+		if (!started || locked || done) return;
 		stopTimer();
 		if (!touched) {
 			touched = true;
@@ -161,6 +167,7 @@
 		index = 0;
 		build();
 		reveal();
+		Chime.reopen(0);
 		chrome('dim');
 		stage.focus();
 	}
@@ -209,8 +216,37 @@
 		restart();
 	});
 
-	build();
-	reveal();
-	chrome('dim');
-	stage.focus({ preventScroll: true });
+	/* 표지를 걷는 그 한 번의 제스처 안에서 소리를 청한다. 거부당해도 조용히
+	   넘어가고, 작품은 소리 없이 그대로 돈다. */
+	function begin() {
+		if (started) return;
+		started = true;
+		if (Chime.start(0)) muteBtn.classList.add('is-ready');
+		cover.classList.add('is-gone');
+		body.classList.remove('is-cover');
+		build();
+		reveal();
+		chrome('dim');
+		stage.focus({ preventScroll: true });
+	}
+
+	cover.addEventListener('pointerup', function (e) {
+		if (e.button && e.button !== 0) return;
+		begin();
+	});
+
+	document.addEventListener('keydown', function (e) {
+		if (started) return;
+		if (e.key === ' ' || e.key === 'Enter') {
+			e.preventDefault();
+			begin();
+		}
+	});
+
+	muteBtn.addEventListener('click', function (e) {
+		e.stopPropagation();
+		var off = Chime.mute(!Chime.isMuted());
+		muteBtn.setAttribute('aria-pressed', off ? 'true' : 'false');
+		muteBtn.setAttribute('aria-label', off ? '소리 켜기' : '소리 끄기');
+	});
 })();

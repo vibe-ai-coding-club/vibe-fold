@@ -6,8 +6,27 @@
 		<title>오늘의 말씀 — 한 줄씩 넘겨 읽는 MZ 시집</title>
 		<link rel="stylesheet" href="style.css" />
 	</head>
-	<body>
+	<body class="is-cover">
 		<canvas id="bg" aria-hidden="true"></canvas>
+
+		<div class="cover" id="cover">
+			<p class="cover__title">오늘의 말씀</p>
+			<p class="cover__enter">눌러서 시작</p>
+		</div>
+
+		<button class="mute" id="mute" type="button" aria-label="소리 끄기" aria-pressed="false">
+			<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+				<path class="mute__horn" d="M4 9.5h3.2L12 5.5v13L7.2 14.5H4z" />
+				<g class="mute__on">
+					<path d="M15.5 9.2a4 4 0 0 1 0 5.6" />
+					<path d="M18 7a7.5 7.5 0 0 1 0 10" />
+				</g>
+				<g class="mute__off">
+					<path d="M16.5 9.8l5 4.4" />
+					<path d="M21.5 9.8l-5 4.4" />
+				</g>
+			</svg>
+		</button>
 
 		<main
 			class="stage"
@@ -35,6 +54,7 @@
 		</noscript>
 
 		<script src="aphorisms.js"></script>
+		<script src="sound.js"></script>
 		<script src="background.js"></script>
 		<script src="app.js"></script>
 	</body>
