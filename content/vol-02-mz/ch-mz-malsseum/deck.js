@@ -1,4 +1,4 @@
-/* 카드 — 열네 장을 흩뿌리고, 고른 장을 뒤집어 가운데로 끌어온다.
+/* 카드 — 말씀을 모두 흩뿌리고, 고른 장을 뒤집어 가운데로 끌어온다.
 
    카드는 평면 두 장을 등 맞대어 세운 것이다. 뒷면은 그대로, 앞면은 Y 축으로
    반 바퀴 돌려 놓는다. 둘 다 앞면만 그리므로(FrontSide) 묶음을 반 바퀴 돌리면
@@ -16,10 +16,13 @@ window.Deck = (function () {
   var geo = null; /* 카드 한 장 (1 × 1.5) */
   var unit = null; /* 글 한 줄을 붙일 평면 (1 × 1) */
   var backTex = null;
+  var wornTex = null; /* 이미 읽은 편이 얹힌 장의 뒷면 */
   var faceTex = null;
+  var glowTex = null;
 
   var layer = null; /* 투명 버튼들이 사는 판 */
   var picked = null; /* 고른 장을 알리는 콜백 */
+  var pulled = null; /* 패에서 빼낸 장을 알리는 콜백 */
   var size = { cw: 0, rw: 0, rh: 0 };
   var m = null;
 
@@ -51,14 +54,25 @@ window.Deck = (function () {
   /* 카드 그림은 캔버스보다 조금 작게 그린다. 남은 테두리에 그림자가 떨어져
 	   카드가 배경에서 들려 보인다. 평면은 캔버스 전체를 덮는다. */
   var PAD = 34;
-  /* 평면 가운데에서 카드가 실제로 차지하는 몫. 나머지는 그림자 자리 */
+  /* 평면 가운데에서 카드가 실제로 차지하는 몫. 나머지는 그림자 자리.
+	   캔버스가 512×768 이라 같은 여백이라도 가로와 세로의 몫이 다르다 —
+	   하나로 뭉뚱그리면 겹쳐 둔 버튼이 카드보다 짧아진다. */
   var PLATE = 1 - (PAD * 2) / 512;
+  var PLATE_H = 1 - (PAD * 2) / 768;
+  /* 카드 모서리의 둥근 정도를 판 폭으로 나눈 몫 */
+  var ROUND = 26 / (512 - PAD * 2);
 
   function plate(x, W, H, r) {
     rounded(x, PAD, PAD, W - PAD * 2, H - PAD * 2, r);
   }
 
-  function backCanvas() {
+  /* 카드 뒷면의 두 벌. 아직 읽지 않은 장은 밤빛이고, 이미 읽은 장은
+	   색이 빠져 잿빛이다. 어둡게 해서 구분하면 그늘과 섞이므로, 밝기가
+	   아니라 색을 빼서 구분한다. */
+  var NIGHT = ["#222e57", "#0d1427", "#151d36"];
+  var WORN = ["#55565a", "#1e1f22", "#303134"];
+
+  function backCanvas(skin) {
     var W = 512;
     var H = 768;
     var r = 26;
@@ -66,9 +80,9 @@ window.Deck = (function () {
     var x = c.getContext("2d");
 
     var g = x.createLinearGradient(W * 0.1, 0, W * 0.9, H);
-    g.addColorStop(0, "#222e57");
-    g.addColorStop(0.55, "#0d1427");
-    g.addColorStop(1, "#151d36");
+    g.addColorStop(0, skin[0]);
+    g.addColorStop(0.55, skin[1]);
+    g.addColorStop(1, skin[2]);
 
     x.save();
     x.shadowColor = "rgba(0, 0, 0, 0.62)";
@@ -143,6 +157,25 @@ window.Deck = (function () {
     x.strokeStyle = "rgba(242, 236, 228, 0.3)";
     x.lineWidth = 2;
     x.stroke();
+    return c;
+  }
+
+  /* 손이 닿았다는 테두리. 카드에 붙여 두면 자리도 기울기도 원근도
+	   카드를 그대로 따라오므로, 화면 좌표를 다시 셀 일이 없다. */
+  function glowCanvas() {
+    var W = 512;
+    var H = 768;
+    var c = sheet(W, H);
+    var x = c.getContext("2d");
+    x.strokeStyle = "rgba(242, 236, 228, 0.9)";
+    x.shadowColor = "rgba(242, 236, 228, 0.8)";
+    x.lineWidth = 3;
+    x.shadowBlur = 16;
+    /* 같은 테두리를 몇 번 덧그려 번짐을 쌓는다 */
+    for (var n = 0; n < 3; n++) {
+      plate(x, W, H, 26);
+      x.stroke();
+    }
     return c;
   }
 
@@ -293,8 +326,21 @@ window.Deck = (function () {
     face.position.z = -0.004;
     face.add(new THREE.Mesh(geo, faceMat));
 
+    /* 테두리는 뒷면 바로 앞에 겹쳐 둔다. 더해서 그리므로 카드를 가리지
+	   않고 빛만 얹힌다. 카드가 뒤집히면 같이 돌아가 저절로 숨는다. */
+    var glowMat = new THREE.MeshBasicMaterial({
+      map: glowTex,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    var glow = new THREE.Mesh(geo, glowMat);
+    glow.position.z = 0.006;
+
     group.add(back);
     group.add(face);
+    group.add(glow);
     Stage.addDeep(group);
 
     var btn = document.createElement("button");
@@ -308,6 +354,8 @@ window.Deck = (function () {
       group: group,
       face: face,
       mats: [backMat, faceMat],
+      glow: glow,
+      lit: null,
       lines: [],
       btn: btn,
       home: null,
@@ -317,58 +365,244 @@ window.Deck = (function () {
       base: 1,
       /* 겹쳐 둔 버튼이 기울어 있는 각도 */
       spin: "",
+      /* 집어 든 동안 버튼을 같이 키우는 몫 */
+      pop: "",
+      /* 패에 올라가 있는가. 올라간 장은 고르기가 아니라 빼내기를 받는다 */
+      held: false,
+      /* 방금 손짓이 치우기였는가. 뒤따라 오는 click 이 이걸 보고 접는다 */
+      taken: false,
       /* 지금 머무는 자리의 이름. 창이 바뀌면 이걸 보고 다시 앉힌다 */
       spot: "home",
       slot: 0,
     };
 
-    btn.addEventListener("click", function () {
-      if (picked) picked(i);
+    /* 한 손짓 안에 두 뜻이 들어 있다. 누르면 카드가 손에 들리고, 그대로
+	   떼면 고르기, 끌면 치우기다. 움직인 거리로만 가른다 — 손이 흔들린
+	   정도로 뜻이 바뀌면 안 되므로 문턱을 둔다.
+
+	   호버에서는 카드를 움직이지 않는다. 겹쳐 깔린 판에서 카드가 들썩이면
+	   어느 장을 짚고 있는지가 흐려진다. 테두리만 빛나게 두고(CSS),
+	   들어올리는 일은 손이 실제로 누른 뒤에 한다. */
+    btn.addEventListener("pointerdown", function (e) {
+      if (e.button && e.button !== 0) return;
+      if (layer.classList.contains("is-off")) return;
+      /* 한 번에 한 장만. 두 손가락이 겹치면 먼저 든 장이 허공에 남는다 */
+      if (hold) return;
+      hold = { ox: e.clientX, oy: e.clientY, moved: false, id: e.pointerId };
+      card.taken = false;
+      card.grabX = card.home.x;
+      card.grabY = card.home.y;
+      if (card.anim) Stage.cut(card.anim);
+      rise(card, HOLD);
+      /* 아래에 깔린 장을 집었으면 위에 겹친 장들이 비켜선다 */
+      if (!card.held) clear(card, 0);
+      try {
+        btn.setPointerCapture(e.pointerId);
+      } catch (err) {
+        /* 못 잡아도 버튼 위에서는 move 가 온다 */
+      }
     });
+
+    btn.addEventListener("pointermove", function (e) {
+      if (!hold || e.pointerId !== hold.id) return;
+      var dx = e.clientX - hold.ox;
+      var dy = e.clientY - hold.oy;
+      if (!hold.moved) {
+        if (Math.abs(dx) + Math.abs(dy) < DRAG) return;
+        hold.moved = true;
+      }
+      if (card.held) tug(card, dx * m.k, -dy * m.k);
+      else place(card, dx * m.k, -dy * m.k);
+    });
+
+    btn.addEventListener("pointerup", function (e) {
+      if (!hold || e.pointerId !== hold.id) return;
+      var moved = hold.moved;
+      var up = hold.oy - e.clientY;
+      hold = null;
+      card.taken = moved;
+      if (card.held) {
+        /* 위로 끌어 올리면 패에서 빠진다. 아니면 제자리로 돌아간다 */
+        if (moved && up > PULL && pulled) pulled(i);
+        else settle(card);
+        return;
+      }
+      if (moved) anchor(card);
+      rise(card, 0);
+    });
+
+    btn.addEventListener("pointercancel", function () {
+      if (!hold) return;
+      hold = null;
+      if (card.held) settle(card);
+      else {
+        anchor(card);
+        rise(card, 0);
+      }
+    });
+
     btn.addEventListener("pointerenter", function () {
-      raise(card, true);
+      if (!layer.classList.contains("is-off")) shine(card, true);
     });
     btn.addEventListener("pointerleave", function () {
-      raise(card, false);
+      if (!hold) shine(card, false);
     });
     btn.addEventListener("focus", function () {
-      raise(card, true);
+      if (!layer.classList.contains("is-off")) shine(card, true);
     });
     btn.addEventListener("blur", function () {
-      raise(card, false);
+      shine(card, false);
+    });
+
+    btn.addEventListener("click", function (e) {
+      if (card.taken) {
+        card.taken = false;
+        return;
+      }
+      if (card.held) {
+        /* 끌 수 없는 손(키보드)에서도 빼낼 수 있어야 한다 */
+        if (e.detail === 0 && pulled) pulled(i);
+        return;
+      }
+      if (picked) picked(i);
     });
 
     return card;
   }
 
-  var LIFT = 0.5; /* 손이 닿은 카드가 앞으로 나오는 깊이 */
+  var HOLD = 0.95; /* 집어 든 카드가 앞으로 나오는 깊이 */
+  var DRAG = 7; /* 이만큼(px) 끌리면 고르기가 아니라 치우기다 */
+  var PULL = 42; /* 패에 둔 장을 이만큼 위로 끌면 빠진다 */
+  var hold = null; /* 지금 손에 들린 장. 한 번에 한 장만 */
+  var dull = []; /* 이미 읽은 편이 얹힌 자리 */
 
-  function raise(card, on) {
+  /* 테두리를 켜고 끈다 */
+  function shine(card, on) {
+    if (card.lit) Stage.cut(card.lit);
+    var o0 = card.glow.material.opacity;
+    var o1 = on ? 1 : 0;
+    card.lit = Stage.tween(0.22, Stage.EASE.out, function (e) {
+      card.glow.material.opacity = o0 + (o1 - o0) * e;
+    });
+  }
+
+  function rise(card, depth) {
     if (!card.home || layer.classList.contains("is-off")) return;
     if (card.hover) Stage.cut(card.hover);
     /* 카드가 앞으로 나오면 그만큼 커 보인다. 겹쳐 둔 버튼도 같이 키워야
 		   포커스 테두리가 카드에서 어긋나지 않는다 */
-    card.btn.style.transform =
-      card.spin +
-      (on ? " scale(" + (DIST / (DIST - LIFT)).toFixed(4) + ")" : "");
+    card.pop = depth
+      ? " scale(" + (DIST / (DIST - depth)).toFixed(4) + ")"
+      : "";
+    card.btn.style.transform = card.spin + card.pop;
     var z0 = card.group.position.z;
-    var z1 = on ? card.home.z + LIFT : card.home.z;
+    var z1 = spotOf(card).z + depth;
     var c0 = card.mats[0].color.r;
-    var c1 = on ? card.base + 0.45 : card.base;
+    var c1 = card.base + (depth ? 0.45 : 0);
     card.hover = Stage.tween(0.3, Stage.EASE.out, function (e) {
       card.group.position.z = z0 + (z1 - z0) * e;
       card.mats[0].color.setScalar(c0 + (c1 - c0) * e);
     });
   }
 
-  /* 밝기를 옮긴다. 한 장을 고르고 나면 나머지는 한 단 물러선다 */
-  function shade(card, to) {
-    card.base = to;
-    if (card.hover) Stage.cut(card.hover);
-    var c0 = card.mats[0].color.r;
-    card.hover = Stage.tween(0.5, Stage.EASE.out, function (e) {
-      card.mats[0].color.setScalar(c0 + (to - c0) * e);
+  /* 끌리는 동안 카드를 손끝에 붙여 둔다. 자리(home)를 그 자리에서 고치므로
+	   손을 떼면 치운 데 그대로 머문다. 판 밖으로는 나가지 못하게 가둔다. */
+  function place(card, dxw, dyw) {
+    var lx = (m.deckW * m.k) / 2;
+    var ly = (m.deckH * m.k) / 2;
+    card.home.x = Math.max(-lx, Math.min(lx, card.grabX + dxw));
+    card.home.y = Math.max(m.cy - ly, Math.min(m.cy + ly, card.grabY + dyw));
+    var to = spotOf(card);
+    set(card, {
+      x: to.x,
+      y: to.y,
+      z: to.z + HOLD,
+      ry: to.ry,
+      rz: to.rz,
+      s: to.s,
     });
+    aimAt(card, to);
+  }
+
+  /* 치운 자리를 굳힌다. home 은 이미 고쳐졌으니 버튼만 맞춰 준다 */
+  function anchor(card) {
+    aimOne(card);
+  }
+
+  /* 패에 있는 장을 손끝에 매단다. 자리를 고치지 않으므로 손을 떼면 돌아간다 */
+  function tug(card, dxw, dyw) {
+    var base = spotOf(card);
+    var to = {
+      x: base.x + dxw,
+      y: base.y + dyw,
+      z: base.z + HOLD,
+      ry: base.ry,
+      rz: base.rz,
+      s: base.s,
+    };
+    set(card, to);
+    aimAt(card, to);
+  }
+
+  /* 제자리로 돌려 앉힌다 */
+  function settle(card) {
+    move(card, spotOf(card), 0.3, Stage.EASE.out, function () {
+      aimOne(card);
+    });
+  }
+
+  /* 옆으로 비켜 세운다. 자리 자체를 고치므로 비킨 채로 머문다.
+	   밀린 쪽으로 조금 돌아간다 — 한 점을 밀면 물건은 돌면서 밀린다. */
+  function shift(card, dxw, dur) {
+    var lx = (m.deckW * m.k) / 2;
+    card.home.x = Math.max(-lx, Math.min(lx, card.home.x + dxw));
+    card.home.rz = Math.max(
+      -0.42,
+      Math.min(0.42, card.home.rz - (dxw / (size.cw * m.k)) * 0.12),
+    );
+    move(card, spotOf(card), dur, Stage.EASE.spring, function () {
+      aimOne(card);
+    });
+    /* 버튼은 기다리지 않고 새 자리로. 손이 카드보다 늦으면 안 된다 */
+    aimOne(card);
+  }
+
+  /* 집어 든 장 위에 겹쳐 있는 장들을 옆으로 밀어낸다. 아래에 깔린 장을
+	   집으면 위의 장들이 스르륵 비켜서 길을 내준다. 겹친 만큼만 밀어
+	   비키게 하므로, 판이 한꺼번에 흐트러지지는 않는다. */
+  function clear(card, depth) {
+    var w = size.cw * PLATE * m.k;
+    var h = w * RATIO;
+    for (var i = 0; i < cards.length; i++) {
+      var other = cards[i];
+      if (other === card || other.held || other.btn.disabled) continue;
+      if (other.spot !== "home" || !other.home) continue;
+      /* 아래에 깔린 장은 가만히 둔다. 비켜야 하는 건 위에 있는 쪽이다 */
+      if (other.home.z <= card.home.z) continue;
+      var overX = w * 0.9 - Math.abs(other.home.x - card.home.x);
+      var overY = h * 0.9 - Math.abs(other.home.y - card.home.y);
+      if (overX <= 0 || overY <= 0) continue;
+      var dir = other.home.x >= card.home.x ? 1 : -1;
+      shift(other, dir * (overX + w * 0.06), 0.55 + depth * 0.1);
+      /* 비킨 장이 그 옆의 장을 다시 민다. 한 번 더까지만 —
+			   끝까지 전하면 판 전체가 한꺼번에 흐트러진다 */
+      if (depth < 1) clear(other, depth + 1);
+    }
+  }
+
+  /* 읽어주기에 붙는 이름. 자리에 따라 할 수 있는 일이 달라진다 */
+  function rename(card) {
+    card.btn.setAttribute(
+      "aria-label",
+      card.i +
+        1 +
+        "번 카드" +
+        (card.held
+          ? " · 위로 끌어 빼내기"
+          : dull.indexOf(card.i) >= 0
+            ? " · 이미 읽은 말씀"
+            : ""),
+    );
   }
 
   /* ── 자리 ───────────────────────────────────────────────── */
@@ -423,7 +657,7 @@ window.Deck = (function () {
     return card.anim;
   }
 
-  /* 열네 장을 몇 줄로 어떻게 벌려 놓을지. 마지막 줄만 휑하지 않게
+  /* 깔린 장을 몇 줄로 어떻게 벌려 놓을지. 마지막 줄만 휑하지 않게
 	   장수를 줄마다 고르게 나눈다 (여섯 칸이면 5·5·4). */
   function spread(n, cols) {
     var rows = Math.ceil(n / cols);
@@ -508,26 +742,70 @@ window.Deck = (function () {
     }
   }
 
+  /* 가운데로 몰아 주는 세기. 1 이면 고르게 퍼지고, 클수록 가운데가
+     빽빽해진다. 몰린 자리에서는 카드가 서로 겹치고, 겹친 장은 끌어서
+     치워야 아래가 드러난다 — 그 겹침이 이 판의 일이다. */
+  var HUDDLE = 1.55;
+
+  /* -1~1 을 부호는 지키면서 가운데로 끌어당긴다 */
+  function huddle(u) {
+    return (u < 0 ? -1 : 1) * Math.pow(Math.abs(u), HUDDLE);
+  }
+
+  /* 카드 크기를 재는 데 쓰는 칸의 수. 장수가 늘어도 카드가 쪼그라들지
+     않게 여기서 멈춘다. 넘치는 장수는 크기가 아니라 겹침으로 받는다. */
+  var SIZE_COLS = 5;
+  var SIZE_ROWS = 4;
+
+  /* 카드밭의 가로:세로 상한. 판이 아무리 넓어도 이 비를 넘기지 않는다 —
+	   넘기면 양쪽 모서리까지 늘어져 네모난 틀이 드러난다. */
+  var FIELD = 2.0;
+
+  /* 가운데가 높고 양 끝이 내려앉은 활 모양. ARCH 는 가장자리에서 세로로
+	   줄어드는 몫이고 SINK 는 아래로 내려앉는 몫이다. 네 모서리를 비우면
+	   카드밭이 네모난 틀에서 풀려난다. */
+  var ARCH = 0.52;
+  var SINK = 0.26;
+
   function measure() {
     m = Stage.metrics();
     var per = spread(cards.length, m.cols);
     var wide = Math.max.apply(null, per);
-    var cellW = m.deckW / wide;
+    var fieldW = Math.min(m.deckW, m.deckH * FIELD);
+    var cellW = fieldW / wide;
     var cellH = m.deckH / per.length;
 
+    /* 자리는 판 전체에 퍼지지만 크기는 이 칸을 넘지 않는다 */
+    var fitW = m.deckW / Math.min(wide, SIZE_COLS);
+    var fitH = m.deckH / Math.min(per.length, SIZE_ROWS);
+
     /* size 는 평면 폭이고, 눈에 보이는 카드는 그 PLATE 만큼이다 */
-    size.cw = Math.min(cellW * 0.84, (cellH * 0.82) / RATIO) / PLATE;
+    size.cw = Math.min(fitW * 0.84, (fitH * 0.82) / RATIO) / PLATE;
     size.rh = Math.min(m.deckH * 0.82, m.deckW * 0.92 * RATIO) / PLATE;
     size.rw = size.rh / RATIO;
 
-    var jx = Math.max(0, (cellW - size.cw * PLATE) / 2) * 0.9;
-    var jy = Math.max(0, (cellH - size.cw * PLATE * RATIO) / 2) * 0.9;
+    /* 카드가 칸보다 커지면 남는 틈이 없다. 흩뿌린 티는 칸에 비례해 준다 */
+    var jx = cellW * 0.34;
+    var jy = cellH * 0.34;
+    var halfR = (per.length - 1) / 2;
+    var reach = ((wide - 1) / 2) * cellW; /* 가장 넓은 줄의 반폭 */
 
     var i = 0;
     for (var r = 0; r < per.length; r++) {
       for (var k = 0; k < per[r]; k++, i++) {
-        var px = (k - (per[r] - 1) / 2) * cellW + seeds[i].x * jx;
-        var py = -(r - (per.length - 1) / 2) * cellH - seeds[i].y * jy;
+        var armC = (per[r] - 1) / 2;
+        var ux = armC > 0 ? (k - armC) / armC : 0;
+        var uy = halfR > 0 ? (r - halfR) / halfR : 0;
+        var px = huddle(ux) * armC * cellW;
+        /* 활의 높이는 줄 안에서의 차례가 아니라 실제 가로 자리로 잰다.
+				   줄마다 칸 수가 다르므로, 줄 안에서 재면 위 모서리가 들쭉날쭉해진다 */
+        var edge = reach > 0 ? Math.min(1, Math.abs(px) / reach) : 0;
+        edge = edge * edge; /* 가운데 0, 양 끝 1 */
+        var py = -huddle(uy) * halfR * cellH;
+        /* 양 끝으로 갈수록 세로로 오므리고 아래로 내려앉힌다 */
+        py = py * (1 - ARCH * edge) - SINK * edge * halfR * cellH;
+        px += seeds[i].x * jx;
+        py -= seeds[i].y * jy * (1 - edge * 0.5);
         /* 날아가는 중에 창이 바뀔 수 있다. 객체를 갈아끼우지 않고
 				   제자리에서 고쳐야 트윈이 새 자리를 따라간다 */
         var home = cards[i].home || (cards[i].home = {});
@@ -541,21 +819,36 @@ window.Deck = (function () {
     }
   }
 
-  /* 카드가 그려지는 자리에 투명 버튼을 겹친다 */
+  /* 카드가 그려지는 자리에 투명 버튼을 겹친다. 자리마다 카드 크기가
+	   다르므로 버튼도 그 크기를 따라가야 손이 어긋나지 않는다. */
+  function aimAt(card, to) {
+    /* 앞으로 나와 있는 만큼 커 보이고, 그만큼 화면 가운데에서 바깥으로
+		   밀려난 자리에 맺힌다. toScreen 은 z=0 평면만 재므로 둘 다 여기서
+		   보정한다 — 크기만 보정하면 가운데에서는 맞고 멀어질수록 벌어진다. */
+    var grow = DIST / (DIST - (to.z || 0));
+    var p = Stage.toScreen(to.x * grow, to.y * grow);
+    var span = to.s / m.k; /* 평면 한 변의 길이(px) */
+    var w = span * PLATE * grow;
+    var t = span * RATIO * PLATE_H * grow;
+    var s = card.btn.style;
+    s.width = w.toFixed(1) + "px";
+    s.height = t.toFixed(1) + "px";
+    s.borderRadius = (w * ROUND).toFixed(1) + "px";
+    s.left = (p.x - w / 2).toFixed(1) + "px";
+    s.top = (p.y - t / 2).toFixed(1) + "px";
+    /* three.js 의 rotation.z 는 Y 가 위인 자리에서 반시계가 양수고,
+		   CSS 의 rotate 는 Y 가 아래인 자리에서 시계가 양수다. 같은 값을
+		   그대로 넘기면 테두리만 반대로 기운다. 부호를 뒤집는다. */
+    card.spin = "rotate(" + ((-to.rz * 180) / Math.PI).toFixed(2) + "deg)";
+    s.transform = card.spin + card.pop;
+  }
+
+  function aimOne(card) {
+    aimAt(card, spotOf(card));
+  }
+
   function aim() {
-    for (var i = 0; i < cards.length; i++) {
-      var h = cards[i].home;
-      var p = Stage.toScreen(h.x, h.y);
-      var w = size.cw * PLATE;
-      var t = w * RATIO;
-      var s = cards[i].btn.style;
-      s.width = w.toFixed(1) + "px";
-      s.height = t.toFixed(1) + "px";
-      s.left = (p.x - w / 2).toFixed(1) + "px";
-      s.top = (p.y - t / 2).toFixed(1) + "px";
-      cards[i].spin = "rotate(" + ((h.rz * 180) / Math.PI).toFixed(2) + "deg)";
-      s.transform = cards[i].spin;
-    }
+    for (var i = 0; i < cards.length; i++) aimOne(cards[i]);
   }
 
   function shuffleSeeds() {
@@ -566,6 +859,20 @@ window.Deck = (function () {
         y: Math.random() * 2 - 1,
         r: Math.random() * 2 - 1,
       });
+    }
+  }
+
+  /* 아직 물러나는 중인 장을 즉시 치운다. 물러나는 자리(z 1.5)는 열리는
+	   자리(z 0.9)보다 앞이라, 빨리 넘기면 지난 장의 글이 다음 장 위에
+	   겹쳐 남는다. 다음 장이 열리기 전에 지난 장은 사라져 있어야 한다. */
+  function purge() {
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      if (card.spot !== "shut") continue;
+      if (card.anim) Stage.cut(card.anim);
+      if (card.hover) Stage.cut(card.hover);
+      for (var j = 0; j < card.mats.length; j++) card.mats[j].opacity = 0;
+      clearLines(card);
     }
   }
 
@@ -584,8 +891,10 @@ window.Deck = (function () {
       layer = hitLayer;
       geo = new THREE.PlaneGeometry(1, RATIO);
       unit = new THREE.PlaneGeometry(1, 1);
-      backTex = tex(backCanvas());
+      backTex = tex(backCanvas(NIGHT));
+      wornTex = tex(backCanvas(WORN));
       faceTex = tex(faceCanvas());
+      glowTex = tex(glowCanvas());
       for (var i = 0; i < n; i++) cards.push(make(i));
       shuffleSeeds();
       measure();
@@ -599,6 +908,11 @@ window.Deck = (function () {
 
     onPick: function (fn) {
       picked = fn;
+    },
+
+    /* 패에서 빼내 달라는 손짓을 알린다 */
+    onPull: function (fn) {
+      pulled = fn;
     },
 
     /* 아래에서 한 장씩 날아와 자리를 잡는다 */
@@ -638,7 +952,7 @@ window.Deck = (function () {
     focusNext: function (from) {
       for (var n = 1; n <= cards.length; n++) {
         var card = cards[(from + n) % cards.length];
-        if (!card.btn.disabled) {
+        if (!card.btn.disabled && !card.held) {
           card.btn.focus({ preventScroll: true });
           return;
         }
@@ -649,16 +963,47 @@ window.Deck = (function () {
 		   나머지는 한 단 어두워져서, 뽑힌 것과 남은 것이 한눈에 갈린다. */
     lift: function (i, slot) {
       var card = cards[i];
-      card.btn.disabled = true;
+      /* 버튼을 끄지 않는다. 패에 올라간 장은 고르기 대신 빼내기를 받는다 */
+      card.held = true;
       card.spot = "tray";
       card.slot = slot;
-      card.base = 1;
       if (card.hover) Stage.cut(card.hover);
-      card.mats[0].color.setScalar(1);
-      move(card, spotOf(card), 0.8, Stage.EASE.out);
-      for (var n = 0; n < cards.length; n++) {
-        if (cards[n].btn.disabled) continue;
-        if (cards[n].base !== 0.5) shade(cards[n], 0.5);
+      rename(card);
+      move(card, spotOf(card), 0.8, Stage.EASE.out, function () {
+        aimOne(card);
+      });
+    },
+
+    /* 패에서 빠진 장은 흩뿌린 자리로 돌아간다 */
+    drop: function (i) {
+      var card = cards[i];
+      card.held = false;
+      card.spot = "home";
+      card.slot = 0;
+      card.pop = "";
+      if (card.hover) Stage.cut(card.hover);
+      rename(card);
+      move(card, spotOf(card), 0.6, Stage.EASE.out, function () {
+        aimOne(card);
+      });
+    },
+
+    /* 한 장이 빠지면 패에 남은 장의 자리가 하나씩 당겨진다 */
+    reslot: function (list) {
+      for (var k = 0; k < list.length; k++) {
+        var card = cards[list[k]];
+        card.slot = k;
+        move(
+          card,
+          spotOf(card),
+          0.45,
+          Stage.EASE.out,
+          (function (c) {
+            return function () {
+              aimOne(c);
+            };
+          })(card),
+        );
       }
     },
 
@@ -686,6 +1031,7 @@ window.Deck = (function () {
     /* 뒤집어 가운데로 끌어온다. 이 작품의 가장 큰 동작 */
     open: function (i, lines, done) {
       var card = cards[i];
+      purge();
       clearLines(card);
 
       var made = [];
@@ -726,14 +1072,14 @@ window.Deck = (function () {
       var y1 = mesh.position.y;
       var y0 = y1 - 0.04;
       mesh.position.y = y0;
-      Stage.tween(0.95, Stage.EASE.out, function (e) {
+      Stage.tween(0.52, Stage.EASE.out, function (e) {
         mesh.material.opacity = e;
         mesh.position.y = y0 + (y1 - y0) * e;
       });
       for (var j = 0; j < step; j++) {
         (function (past) {
           var o0 = past.material.opacity;
-          Stage.tween(0.6, Stage.EASE.out, function (e) {
+          Stage.tween(0.42, Stage.EASE.out, function (e) {
             past.material.opacity = o0 + (0.46 - o0) * e;
           });
         })(card.lines[j]);
@@ -755,12 +1101,33 @@ window.Deck = (function () {
       }
     },
 
+    /* 이미 읽은 편이 얹힌 장은 한 단 연하게 둔다. 못 고르게 하는 것은
+	   아니다 — 다시 뽑을 때 아직 읽지 않은 편이 먼저 눈에 들어오게만 한다.
+	   손이 닿으면 연한 장도 같이 밝아진다(raise 가 base 에서 올린다). */
+    pale: function (list) {
+      dull = list.slice();
+      for (var i = 0; i < cards.length; i++) {
+        var card = cards[i];
+        var worn = dull.indexOf(i) >= 0;
+        card.mats[0].map = worn ? wornTex : backTex;
+        card.mats[0].needsUpdate = true;
+        rename(card);
+      }
+    },
+
     reset: function () {
       for (var i = 0; i < cards.length; i++) {
         clearLines(cards[i]);
         cards[i].btn.disabled = false;
+        cards[i].held = false;
+        cards[i].taken = false;
+        cards[i].pop = "";
+        cards[i].spot = "home";
+        if (cards[i].lit) Stage.cut(cards[i].lit);
+        cards[i].glow.material.opacity = 0;
         cards[i].group.rotation.y = 0;
       }
+      hold = null;
       this.deal();
     },
   };

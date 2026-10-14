@@ -1,4 +1,4 @@
-/* 열네 장을 흩뿌리고 세 장을 받는다. 고른 장은 뒤집혀 가운데로 나오고,
+/* 말씀을 모두 흩뿌리고 세 장을 받는다. 고른 장은 뒤집혀 가운데로 나오고,
    그 안에서 한 줄씩 저절로 떠오른다. 누르면 기다리지 않고 먼저 넘어간다 —
    읽는 속도는 읽는 사람 것이다.
 
@@ -29,6 +29,7 @@
   );
 
   var order = []; /* 카드 → 말씀 번호 */
+  var seen = {}; /* 이미 읽은 말씀 번호. 다시 뽑을 때 연하게 둔다 */
   var chosen = []; /* 고른 카드, 고른 순서대로 */
   var phase = "pick"; /* pick · turn · read · done */
   var cur = -1; /* 지금 읽는 카드가 chosen 의 몇 번째인지 */
@@ -53,6 +54,8 @@
     }
   }
 
+  /* 말씀 전부를 섞어 한 장에 한 편씩 얹는다. 어느 카드에 어느 편이
+     들어갈지는 들어올 때마다 달라진다. */
   function shuffle() {
     order = [];
     for (var i = 0; i < data.length; i++) order.push(i);
@@ -66,6 +69,16 @@
 
   function aphorism() {
     return data[order[chosen[cur]]];
+  }
+
+  /* 이미 읽은 편이 얹힌 장. 카드는 판마다 다시 섞이므로 자리가 아니라
+     말씀 번호로 기억한다. */
+  function stale() {
+    var list = [];
+    for (var i = 0; i < order.length; i++) {
+      if (seen[order[i]]) list.push(i);
+    }
+    return list;
   }
 
   function paintTone(tone) {
@@ -152,6 +165,20 @@
     window.setTimeout(read, reduced ? 20 : 1000);
   }
 
+  /* 패에 둔 장을 위로 끌어 올리면 다시 판으로 돌아간다. 되돌릴 수 있는
+     틈은 고르는 동안뿐이다 — 세 장이 차면 판은 바로 읽기로 넘어간다. */
+  function unpick(i) {
+    if (phase !== "pick") return;
+    var at = chosen.indexOf(i);
+    if (at < 0) return;
+    chosen.splice(at, 1);
+    Deck.drop(i);
+    Deck.reslot(chosen);
+    Chime.ping(1);
+    Backdrop.pulse(0.14);
+    hint.textContent = HINTS[chosen.length];
+  }
+
   /* ── 읽기 ───────────────────────────────────────────────── */
 
   function read() {
@@ -172,6 +199,7 @@
     cur++;
     shown = 0;
     var aph = aphorism();
+    seen[order[chosen[cur]]] = true;
     paintTone(aph.tone);
     Chime.setMood(order[chosen[cur]]);
     meter();
@@ -197,10 +225,16 @@
     }
   }
 
-  /* 줄이 길수록 오래 머문다. 읽을 틈을 주되 지루해지기 전에 넘긴다. */
+  /* 줄이 길수록 오래 머문다. 읽을 틈을 주되 지루해지기 전에 넘긴다.
+     한 편을 다 읽고 다음 장으로 건너갈 때만 이 셈을 쓴다. */
   function dwell(text, extra) {
     return Math.min(6500, 2300 + text.length * 115) + extra;
   }
+
+  /* 한 장 안에서 다음 줄이 떠오르기까지. 줄을 거듭할수록 짧아진다 —
+     첫 줄은 읽을 틈이 있어야 하지만 뒤로 갈수록 눈이 이미 따라와 있고,
+     한 편은 한 호흡으로 읽혀야 한다. */
+  var GAP = [1000, 800];
 
   function plan() {
     stopTimer();
@@ -213,7 +247,9 @@
         timer = null;
         advance();
       },
-      dwell(lines[shown - 1] || "", closing ? 1400 : 0),
+      closing
+        ? dwell(lines[shown - 1] || "", 1400)
+        : GAP[Math.min(shown - 1, GAP.length - 1)],
     );
   }
 
@@ -280,6 +316,7 @@
     paintTone(COVER);
     hint.textContent = HINTS[0];
     Deck.reset();
+    Deck.pale(stale());
     window.setTimeout(
       function () {
         Deck.arm(true);
@@ -346,8 +383,11 @@
 
   if (live) {
     Backdrop.start(COVER, reduced);
-    Deck.build(data.length, document.getElementById("picks"));
+    var picksEl = document.getElementById("picks");
+    picksEl.setAttribute("aria-label", order.length + "장의 카드");
+    Deck.build(order.length, picksEl);
     Deck.onPick(pick);
+    Deck.onPull(unpick);
     Deck.arm(false);
     Deck.deal();
     /* 다 날아와 앉기 전에는 짚히지 않게 둔다 */

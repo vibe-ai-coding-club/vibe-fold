@@ -35,6 +35,12 @@ window.Stage = (function () {
     soft: function (p) {
       return p * p * (3 - 2 * p);
     },
+    /* 밀려난 것이 멎을 때 살짝 지나쳤다 돌아온다. 손으로 민 것처럼
+	     보이려면 끝이 칼같이 서면 안 된다 */
+    spring: function (p) {
+      var a = 1.45;
+      return 1 + (a + 1) * Math.pow(p - 1, 3) + a * Math.pow(p - 1, 2);
+    },
     /* 뒤집히는 카드. 느리게 떠서 빠르게 돌고 다시 느리게 멎는다 */
     swing: function (p) {
       return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;

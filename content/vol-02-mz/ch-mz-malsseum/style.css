@@ -184,6 +184,8 @@ body.is-picking .meter {
   cursor: pointer;
   pointer-events: auto;
   outline: none;
+  /* 손가락으로 카드를 끌 때 화면이 따라 움직이지 않게 */
+  touch-action: none;
 }
 
 .pick:disabled {
