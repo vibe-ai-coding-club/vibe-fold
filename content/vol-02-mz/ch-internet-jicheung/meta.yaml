@@ -1,0 +1,11 @@
+id: ch-internet-jicheung
+slug: internet-jicheung
+# 바꾸면 data.js의 title도 같이 바꿉니다.
+title: 인터넷 지층
+creator: uja
+description: |
+  인터넷 지층을 파 내려가며 사라진 밈을 발굴하는 픽셀 게임이에요.
+
+  깊이 팔수록 더 오래된 말이 나와요. 다 파고 나면 내가 어느 시절 사람인지 알 수 있어요.
+# 가로 3:2 ~ 16:10. 세로를 넣으면 카드에서 위아래가 잘립니다.
+thumbnail: thumb.webp
