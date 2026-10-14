@@ -1,4 +1,5 @@
-/* 한 번 누르면 한 줄. 격언을 다 읽으면 다음 격언.
+/* 한 줄씩 저절로 떠오른다. 격언을 다 읽으면 다음 격언.
+   누르면 기다리지 않고 먼저 넘어간다 — 읽는 속도는 읽는 사람 것이다.
    상태는 전부 메모리에 둔다 — sandbox 안이라 localStorage 가 막혀 있고,
    새로고침하면 처음으로 돌아가는 것이 맞다. */
 (function () {
@@ -23,6 +24,8 @@
 	var locked = false; /* 격언이 갈리는 동안 입력을 막는다 */
 	var done = false;
 	var touched = false;
+	var timer = null;
+	var away = false; /* 탭이 뒤로 가면 멈춘다 */
 
 	var live = Backdrop.start(document.getElementById('bg'), data[0].tone, reduced);
 	if (!live) body.classList.add('is-flat');
@@ -74,6 +77,34 @@
 		shown++;
 		if (live) Backdrop.pulse(0.3);
 		paintMeter();
+		planNext();
+	}
+
+	function stopTimer() {
+		if (timer) {
+			window.clearTimeout(timer);
+			timer = null;
+		}
+	}
+
+	/* 줄이 길수록 오래 머문다. 읽을 틈을 주되 지루해지기 전에 넘긴다. */
+	function dwell(text, extra) {
+		return Math.min(6500, 2300 + text.length * 115) + extra;
+	}
+
+	function planNext() {
+		stopTimer();
+		if (done || away) return;
+		var lines = data[index].lines;
+		/* 한 편의 마지막 줄에서는 조금 더 머물렀다가 다음 편으로 건너간다 */
+		var closing = shown >= lines.length;
+		timer = window.setTimeout(
+			function () {
+				timer = null;
+				advance();
+			},
+			dwell(lines[shown - 1] || '', closing ? 1100 : 0),
+		);
 	}
 
 	function nextAphorism() {
@@ -93,6 +124,7 @@
 	function finish() {
 		done = true;
 		locked = true;
+		stopTimer();
 		verse.classList.add('is-leaving');
 		chrome('show');
 		window.setTimeout(
@@ -106,6 +138,7 @@
 
 	function advance() {
 		if (locked || done) return;
+		stopTimer();
 		if (!touched) {
 			touched = true;
 			hint.classList.add('is-gone');
@@ -160,6 +193,16 @@
 			);
 		});
 	}
+
+	/* 탭을 떠나 있는 동안은 멈춘다. 돌아왔을 때 몇 편이 지나가 있으면 안 된다. */
+	document.addEventListener('visibilitychange', function () {
+		away = document.hidden;
+		if (away) {
+			stopTimer();
+		} else if (!done && !locked) {
+			planNext();
+		}
+	});
 
 	again.addEventListener('click', function (e) {
 		e.stopPropagation();
