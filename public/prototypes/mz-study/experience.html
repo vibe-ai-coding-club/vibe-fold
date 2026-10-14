@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light"><title>MZ 같지 않네요 — 배려</title>
+<link rel="stylesheet" href="assets/font.css"><link rel="stylesheet" href="experience.css">
+<script src="assets/gsap.min.js" defer></script><script src="experience.js" defer></script>
+</head>
+<body>
+<main id="scene" data-phase="observation" aria-label="배려: 세대의 평가 뒤에 있는 개인의 기억">
+  <picture id="still"><source media="(max-aspect-ratio: 1/1)" srcset="assets/care-portrait.jpg"><img src="assets/care-landscape.jpg" alt="따뜻한 오후의 카페. 여성이 처음 온 남성에게 빈 의자를 내준다."></picture>
+  <video id="film" muted playsinline preload="auto" aria-hidden="true"></video>
+  <div class="shade" aria-hidden="true"></div>
+  <div class="scene-mark" aria-hidden="true"><span>01</span> 배려</div>
+  <button id="sound" class="quiet-button" aria-pressed="false" aria-label="소리 켜기">소리 켜기 <span aria-hidden="true">＋</span></button>
+  <canvas id="paper" aria-hidden="true"></canvas>
+  <button id="label" disabled aria-describedby="instruction"><span>MZ인데<br class="mobile-break"> 사회성이 좋네.</span></button>
+  <section id="memory" aria-live="polite" aria-atomic="true"><p class="memory-kicker">그 사람의 이유</p><p class="memory-quote">“나도 처음 온 날<br>아무도 말을 안 걸어줬거든요.”</p></section>
+  <footer><p id="instruction" role="status">잠시, 이 사람을 바라봐 주세요.</p><button id="replay" class="quiet-button" hidden>다시 바라보기 <span aria-hidden="true">↺</span></button></footer>
+</main>
+<noscript><p class="no-script">이 사람에게 붙은 말: “MZ인데 사회성이 좋네.”<br>그 사람의 이유: “나도 처음 온 날 아무도 말을 안 걸어줬거든요.”<br>종이를 걷는 체험은 JavaScript를 켜면 볼 수 있습니다.</p></noscript>
+</body></html>

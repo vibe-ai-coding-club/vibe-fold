@@ -1,0 +1,133 @@
+{
+  "assets": [
+    {
+      "asset": "care-landscape.jpg",
+      "model": "Soul Cinematic",
+      "job_type": "soul_cinematic",
+      "job_id": "d6a839d1-d2a8-41eb-b355-db8f496c55a1",
+      "created_at": "2026-10-13T10:46:29.057698Z",
+      "status": "completed",
+      "requested_prompt_key": "care-landscape",
+      "effective_prompt": "Cinematic documentary still photograph in a quiet Korean community workshop cafe, warm late afternoon window light, ivory plaster walls, wood table and simple wood chairs. Two ordinary Korean adults in their late twenties, natural restrained expressions, no glamorous styling. A woman with shoulder-length straight black hair wearing an oatmeal cardigan over a plain white top sits on the LEFT at a table, gently pulling an empty chair toward a newcomer on the RIGHT, a man with short black hair wearing a muted sage green shirt and charcoal trousers, holding a small notebook. She looks toward him with quiet warmth, he is slightly hesitant, excluded from a blurred group in the far background. Both main faces and the empty chair clearly visible, medium wide two shot, candid small gesture, shot on 35mm film, subtle grain, soft highlights, natural skin, observational art film. Leave some clear space around their torsos for an overlay. NO text, NO letters, NO watermarks, NO logos.",
+      "width": 2048,
+      "height": 1152,
+      "duration": null,
+      "quality": "1080p",
+      "seed": 217387,
+      "references": [],
+      "postprocess": "JPEG q=2 via ffmpeg from generated PNG",
+      "sha256": "70756ead489e6342c5659426bde5518e089e15903a440b75e31bc15359e63a76"
+    },
+    {
+      "asset": "care-portrait.jpg",
+      "model": "Soul Cinematic",
+      "job_type": "soul_cinematic",
+      "job_id": "3d9626e7-b944-481b-8bde-7fe80c5923a9",
+      "created_at": "2026-10-13T10:53:32.644563Z",
+      "status": "completed",
+      "requested_prompt_key": "care-portrait",
+      "effective_prompt": "",
+      "width": 1152,
+      "height": 2048,
+      "duration": null,
+      "quality": "1080p",
+      "seed": 894282,
+      "references": [
+        {
+          "id": "d6a839d1-d2a8-41eb-b355-db8f496c55a1",
+          "role": "image"
+        }
+      ],
+      "postprocess": "JPEG q=2 via ffmpeg from generated PNG",
+      "sha256": "6eab529fc6710b82eadedd9bdddb9bcbf33a28c7a7bbddd97964b6129ccfbc8f"
+    },
+    {
+      "asset": "greeting.jpg",
+      "model": "Soul Cinematic",
+      "job_type": "soul_cinematic",
+      "job_id": "f65ca3bf-6e89-4134-8d57-1f6147e6f30f",
+      "created_at": "2026-10-13T10:56:43.850789Z",
+      "status": "completed",
+      "requested_prompt_key": "greeting",
+      "effective_prompt": "A natural cinematic documentary still photograph of two ordinary Korean adults in their late twenties. Woman with shoulder-length straight black hair wearing oatmeal cardigan over plain white top. Man with short black hair in sage green shirt and charcoal trousers. Warm late afternoon window light in a contemporary small Korean community cafe, plain blank ivory walls, clean wood furniture, subtle 35mm film grain, quiet restrained expressions, soft light, candid and emotionally believable. Absolutely no signs, no posters, no writing, no characters on walls, no logos or captions. Entirely new composition: both people STANDING at the cafe ENTRANCE door, facing one another, EYE CONTACT, woman gives a gentle small bow in greeting, hands relaxed at sides, man smiles subtly and nods back. Camera eye-level, waist-up medium two shot, doorway behind. No handshakes, no touching, no seated people, no empty chair.",
+      "width": 2048,
+      "height": 1152,
+      "duration": null,
+      "quality": "1080p",
+      "seed": 156625,
+      "references": [],
+      "postprocess": "JPEG q=2 via ffmpeg from generated PNG",
+      "sha256": "456d6d3fed8fdfdc6190e4a5d0eb07aa1ac9c836e5f7485fa3cc25ee9d6f8e9a"
+    },
+    {
+      "asset": "boundary.jpg",
+      "model": "Soul Cinematic",
+      "job_type": "soul_cinematic",
+      "job_id": "9fcbacc2-c96f-4b7d-993e-50c052ad87d0",
+      "created_at": "2026-10-13T10:58:15.922909Z",
+      "status": "completed",
+      "requested_prompt_key": "boundary",
+      "effective_prompt": "A natural cinematic documentary still photograph of two ordinary Korean adults in their late twenties. Woman with shoulder-length straight black hair wearing oatmeal cardigan over plain white top. Man with short black hair in sage green shirt and charcoal trousers. Warm late afternoon window light in a contemporary small Korean community cafe, plain blank ivory walls, clean wood furniture, subtle 35mm film grain, quiet restrained expressions, soft light, candid and emotionally believable. Absolutely no signs, no posters, no writing, no characters on walls, no logos or captions. Entirely new composition: both people SEATED face to face across a small table, eye-level medium two shot. Woman calmly raises one relaxed OPEN PALM towards herself at chest height while explaining her own situation with gentle composure. Man sits listening, hands on his own side of table, thoughtful expression. A closed notebook and ceramic cup on table. Respectful conversation, no touching or handshakes, no person standing, no chairs being offered, no angry expression.",
+      "width": 2048,
+      "height": 1152,
+      "duration": null,
+      "quality": "1080p",
+      "seed": 283856,
+      "references": [],
+      "postprocess": "JPEG q=2 via ffmpeg from generated PNG",
+      "sha256": "897207a9a82c040c0d9b9a1586fe2897f8eeb95f8e1bcdf960ddc804c76f8084"
+    },
+    {
+      "asset": "care-landscape.mp4",
+      "model": "Seedance 2.0",
+      "job_type": "seedance_2_0",
+      "job_id": "af5c3dad-bf7c-45a9-9004-fbc909a742af",
+      "created_at": "2026-10-13T10:53:34.541432Z",
+      "status": "completed",
+      "requested_prompt_key": "care-landscape-video",
+      "effective_prompt": "One continuous eight second observational art film shot. Preserve exactly the two people, their outfits, faces and cafe from the starting image. Woman in oatmeal cardigan gently draws the empty wooden chair out and turns to the man in sage shirt, inviting him with a small open hand gesture and a soft natural smile. He makes eye contact, relaxes slightly, then slowly starts to sit in the offered chair, holding his notebook. Tiny natural movements only, restrained expressions, warm afternoon sunlight, minimal slow camera drift, both faces remain visible, no cuts, no dramatic acting, no morphing, no change of clothes, no text or titles. Silent.",
+      "width": 1920,
+      "height": 1080,
+      "duration": 8,
+      "quality": "1080p",
+      "seed": null,
+      "references": [
+        {
+          "id": "d6a839d1-d2a8-41eb-b355-db8f496c55a1",
+          "role": "start_image"
+        }
+      ],
+      "postprocess": "Original H.264 MP4, no audio",
+      "sha256": "84c562233672c769e7060315d45477c17d6cc6d1db3365497599de3fb6068c9a"
+    },
+    {
+      "asset": "care-portrait.mp4",
+      "model": "Seedance 2.0",
+      "job_type": "seedance_2_0",
+      "job_id": "891d11ba-5b1b-470f-a279-c72cd9ad5d08",
+      "created_at": "2026-10-13T10:55:51.270665Z",
+      "status": "completed",
+      "requested_prompt_key": "care-portrait-video",
+      "effective_prompt": "One continuous eight second observational art film shot. Preserve exactly the two people, their outfits, faces and cafe from the starting image. Woman in oatmeal cardigan gently draws the empty wooden chair out and turns to the man in sage shirt, inviting him with a small open hand gesture and a soft natural smile. He makes eye contact, relaxes slightly, then slowly starts to sit in the offered chair, holding his notebook. Tiny natural movements only, restrained expressions, warm afternoon sunlight, minimal slow camera drift, both faces remain visible, no cuts, no dramatic acting, no morphing, no change of clothes, no text or titles. Silent.",
+      "width": 1080,
+      "height": 1920,
+      "duration": 8,
+      "quality": "1080p",
+      "seed": null,
+      "references": [
+        {
+          "id": "3d9626e7-b944-481b-8bde-7fe80c5923a9",
+          "role": "start_image"
+        }
+      ],
+      "postprocess": "Original H.264 MP4, no audio",
+      "sha256": "ac027b7122996e9cbb32adc0f9441da2ea2e0730e4b34b6ffa20c7f75eec50b1"
+    }
+  ],
+  "notes": [
+    "Soul Cinematic reference-image mode returned an empty effective prompt for care-portrait; retained same people and setting via reference, recomposed vertical output. Greeting and boundary use text prompts after reference mode did not show required action.",
+    "No text overlays were requested in media. Incidental wall signage exists in care footage; evaluation and memory text are rendered by the app.",
+    "Audio is generated locally by Web Audio: low-pass noise for room ambience, band-pass noise envelope for paper rustle; no narration or third-party recording.",
+    "Failed local upload attempts were retried using service job references. Boundary text generation failed once and was retried."
+  ]
+}
