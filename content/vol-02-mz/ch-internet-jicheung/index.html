@@ -40,6 +40,9 @@
 				margin: 0 auto;
 				overflow: hidden;
 			}
+			#screen:focus {
+				outline: none;
+			}
 			#screen {
 				position: absolute;
 				left: 0;
@@ -416,7 +419,7 @@
 	</head>
 	<body>
 		<div id="col">
-			<canvas id="screen" aria-label="발굴장. 탭하거나 스페이스를 눌러 흙더미를 파요."></canvas>
+			<canvas id="screen" tabindex="0" aria-label="발굴장. 탭하거나 스페이스를 눌러 흙더미를 파요."></canvas>
 
 			<div id="gauge" role="img" hidden>
 				<div class="gauge-bar" id="gauge-bar"></div>
@@ -1023,7 +1026,7 @@
 				}
 
 				function answer(ans) {
-					if (state !== 'card') return;
+					if (state !== 'card' || justOpened()) return;
 					current().answer = ans;
 					Sound.blip();
 					closeModal();
@@ -1448,8 +1451,27 @@
 					gaugeEl.setAttribute('aria-label', `${a.layer.name} 지층, ${stations.length}개 중 ${done}개 발굴`);
 				}
 
+				// 판이 막 뜬 순간의 연타가 버튼을 눌러 버리지 않게, 잠깐은 입력을 받지 않는다
+				const OPEN_GUARD = 300;
+				let openedAt = -Infinity;
+				const justOpened = () => performance.now() - openedAt < OPEN_GUARD;
+				document.addEventListener(
+					'click',
+					(e) => {
+						if (justOpened() && e.target.closest('.layer')) {
+							e.preventDefault();
+							e.stopPropagation();
+						}
+					},
+					true,
+				);
+
+				// 판이 닫히면 포커스를 게임 화면으로 돌려 키보드로 계속 팔 수 있게
+				const focusGame = () => canvas.focus({ preventScroll: true });
+
 				function openModal(id) {
 					modal = id;
+					openedAt = performance.now();
 					const el = $('#' + id);
 					el.hidden = false;
 					// 같은 판을 다시 쓰니까 내용은 늘 맨 위부터
@@ -1463,6 +1485,7 @@
 					if (!modal) return;
 					$('#' + modal).hidden = true;
 					modal = null;
+					focusGame();
 				}
 
 				// 유물 카드
@@ -1568,6 +1591,7 @@
 				function showEnding() {
 					$('#ending-sub').textContent = (D.endingSub || '').replace('{year}', new Date().getFullYear());
 					$('#ending').hidden = false;
+					openedAt = performance.now();
 					$('#again').focus({ preventScroll: true });
 					chrome('show');
 				}
@@ -1582,6 +1606,7 @@
 					state = 'ready';
 					updateHud();
 					chrome('dim');
+					focusGame();
 				}
 
 				// ── 입력 ──────────────────────────────────────────
