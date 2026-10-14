@@ -1,24 +1,25 @@
 /* 배경 — 도메인 워핑한 fbm 노이즈를 천천히 흘려보낸다.
-   먹이 물에 번지는 결을 노렸다. 격언이 바뀌면 두 색이 서서히 갈아탄다.
+   먹이 물에 번지는 결을 노렸다. 말씀이 바뀌면 두 색이 서서히 갈아탄다.
 
-   라이브러리를 쓰지 않는다. 작품은 sandbox iframe 안에서 돌고 CDN 을 쓸 수 없어서,
-   Three.js 를 쓰려면 라이브러리를 폴더에 통째로 넣어야 한다. 여기서 필요한 건
-   평면 하나에 셰이더 한 장이라 생 WebGL 로 충분하다.
+   화면을 꽉 채운 평면 한 장에 셰이더 한 장. 원근이 필요 없어서
+   Stage 의 정사영 장면에 얹는다. 카드보다 늘 뒤에 그려진다.
 
-   바꿔 끼우려면 start / setTone / pulse / stop 네 개만 같은 모양으로 맞추면 된다. */
+   바꿔 끼우려면 start / setTone / pulse / look 네 개만 같은 모양으로 맞추면 된다. */
 window.Backdrop = (function () {
-	var VERT = ['attribute vec2 a_pos;', 'void main(){ gl_Position = vec4(a_pos, 0.0, 1.0); }'].join(
-		'\n',
-	);
+	var VERT = [
+		'varying vec2 v_uv;',
+		'void main(){ v_uv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+	].join('\n');
 
 	var FRAG = [
 		'precision highp float;',
-		'uniform vec2 u_res;',
+		'uniform float u_aspect;',
 		'uniform float u_time;',
 		'uniform vec3 u_c1;',
 		'uniform vec3 u_c2;',
 		'uniform float u_pulse;',
 		'uniform vec2 u_ptr;',
+		'varying vec2 v_uv;',
 
 		'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }',
 
@@ -36,7 +37,8 @@ window.Backdrop = (function () {
 		'}',
 
 		'void main(){',
-		'  vec2 p = (gl_FragCoord.xy - 0.5 * u_res) / min(u_res.x, u_res.y);',
+		/* 짧은 쪽을 1 로 삼는다. 세로 화면에서도 가장자리가 제대로 눌린다 */
+		'  vec2 p = (v_uv - 0.5) * vec2(u_aspect, 1.0) / min(u_aspect, 1.0);',
 		'  float t = u_time * 0.025;',
 		/* 노이즈로 좌표를 두 번 접어 소용돌이를 만든다 */
 		'  vec2 q = vec2(fbm(p * 1.5 + vec2(0.0, t)), fbm(p * 1.5 + vec2(5.2, -t)));',
@@ -47,23 +49,19 @@ window.Backdrop = (function () {
 		'  vec3 col = mix(u_c1, u_c2, clamp(f * 1.35, 0.0, 1.0));',
 		'  col += u_c2 * pow(clamp(f, 0.0, 1.0), 3.0) * (0.35 + u_pulse * 0.9);',
 
-		/* 가장자리를 눌러 글자가 놓일 가운데를 비운다 */
+		/* 가장자리를 눌러 카드가 놓일 가운데를 비운다 */
 		'  float d = length(p * vec2(1.0, 1.15));',
 		'  col *= smoothstep(1.5, 0.2, d);',
 
 		/* 종이 결 같은 미세한 노이즈. 밴딩도 같이 덮는다 */
-		'  col += (hash(gl_FragCoord.xy + fract(u_time)) - 0.5) * 0.03;',
+		'  col += (hash(v_uv * 2048.0 + fract(u_time)) - 0.5) * 0.03;',
 
 		'  gl_FragColor = vec4(col, 1.0);',
 		'}',
 	].join('\n');
 
-	var canvas,
-		gl,
-		program,
-		buffer,
-		raf = 0;
-	var loc = {};
+	var mat = null;
+	var calm = false;
 	var startedAt = 0;
 	var pulse = 0;
 	var ptr = [0, 0];
@@ -71,40 +69,18 @@ window.Backdrop = (function () {
 	var from = [0, 0, 0, 0, 0, 0];
 	var to = [0, 0, 0, 0, 0, 0];
 	var mix = 1;
-	var calm = false;
 
 	function hexToRgb(hex) {
 		var n = parseInt(hex.slice(1), 16);
 		return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 	}
 
-	function compile(type, src) {
-		var s = gl.createShader(type);
-		gl.shaderSource(s, src);
-		gl.compileShader(s);
-		if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-			gl.deleteShader(s);
-			return null;
-		}
-		return s;
+	function pair(tone) {
+		return hexToRgb(tone[0]).concat(hexToRgb(tone[1]));
 	}
 
-	function resize() {
-		/* 안개라 선명할 이유가 없다. 해상도를 낮게 잡아 폰에서도 60fps 를 지킨다 */
-		var scale = Math.min(window.devicePixelRatio || 1, 2) * 0.5;
-		var w = Math.max(1, Math.round(canvas.clientWidth * scale));
-		var h = Math.max(1, Math.round(canvas.clientHeight * scale));
-		if (canvas.width !== w || canvas.height !== h) {
-			canvas.width = w;
-			canvas.height = h;
-			gl.viewport(0, 0, w, h);
-		}
-	}
-
-	function frame(now) {
-		raf = requestAnimationFrame(frame);
+	function tick(now) {
 		if (!startedAt) startedAt = now;
-		resize();
 
 		if (mix < 1) mix = Math.min(1, mix + 0.012);
 		pulse *= 0.94;
@@ -112,73 +88,57 @@ window.Backdrop = (function () {
 		ptr[1] += (ptrTarget[1] - ptr[1]) * 0.04;
 
 		var e = mix * mix * (3 - 2 * mix);
-		var c = [];
-		for (var i = 0; i < 6; i++) c[i] = from[i] + (to[i] - from[i]) * e;
-
-		gl.useProgram(program);
-		gl.uniform2f(loc.res, canvas.width, canvas.height);
-		gl.uniform1f(loc.time, calm ? 0 : (now - startedAt) / 1000);
-		gl.uniform3f(loc.c1, c[0], c[1], c[2]);
-		gl.uniform3f(loc.c2, c[3], c[4], c[5]);
-		gl.uniform1f(loc.pulse, calm ? 0 : pulse);
-		gl.uniform2f(loc.ptr, calm ? 0 : ptr[0], calm ? 0 : ptr[1]);
-		gl.drawArrays(gl.TRIANGLES, 0, 6);
+		var u = mat.uniforms;
+		u.u_c1.value.set(
+			from[0] + (to[0] - from[0]) * e,
+			from[1] + (to[1] - from[1]) * e,
+			from[2] + (to[2] - from[2]) * e,
+		);
+		u.u_c2.value.set(
+			from[3] + (to[3] - from[3]) * e,
+			from[4] + (to[4] - from[4]) * e,
+			from[5] + (to[5] - from[5]) * e,
+		);
+		u.u_time.value = calm ? 0 : now - startedAt;
+		u.u_pulse.value = calm ? 0 : pulse;
+		u.u_ptr.value.set(calm ? 0 : ptr[0], calm ? 0 : ptr[1]);
 	}
 
 	return {
-		/* WebGL 을 못 얻으면 false 를 준다. 호출한 쪽이 CSS 배경으로 물러선다 */
-		start: function (el, tone, reducedMotion) {
-			canvas = el;
+		start: function (tone, reducedMotion) {
 			calm = !!reducedMotion;
-			try {
-				gl = canvas.getContext('webgl', { antialias: false, alpha: false, depth: false });
-			} catch (err) {
-				gl = null;
-			}
-			if (!gl) return false;
-
-			var vs = compile(gl.VERTEX_SHADER, VERT);
-			var fs = compile(gl.FRAGMENT_SHADER, FRAG);
-			if (!vs || !fs) return false;
-
-			program = gl.createProgram();
-			gl.attachShader(program, vs);
-			gl.attachShader(program, fs);
-			gl.linkProgram(program);
-			if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return false;
-
-			buffer = gl.createBuffer();
-			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-			gl.bufferData(
-				gl.ARRAY_BUFFER,
-				new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
-				gl.STATIC_DRAW,
-			);
-			var a = gl.getAttribLocation(program, 'a_pos');
-			gl.enableVertexAttribArray(a);
-			gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
-
-			loc.res = gl.getUniformLocation(program, 'u_res');
-			loc.time = gl.getUniformLocation(program, 'u_time');
-			loc.c1 = gl.getUniformLocation(program, 'u_c1');
-			loc.c2 = gl.getUniformLocation(program, 'u_c2');
-			loc.pulse = gl.getUniformLocation(program, 'u_pulse');
-			loc.ptr = gl.getUniformLocation(program, 'u_ptr');
-
-			var rgb = hexToRgb(tone[0]).concat(hexToRgb(tone[1]));
+			var rgb = pair(tone);
 			from = rgb.slice();
 			to = rgb.slice();
-			mix = 1;
 
-			raf = requestAnimationFrame(frame);
-			return true;
+			mat = new THREE.ShaderMaterial({
+				vertexShader: VERT,
+				fragmentShader: FRAG,
+				depthTest: false,
+				depthWrite: false,
+				uniforms: {
+					u_aspect: { value: 1 },
+					u_time: { value: 0 },
+					u_pulse: { value: 0 },
+					u_ptr: { value: new THREE.Vector2(0, 0) },
+					u_c1: { value: new THREE.Vector3(rgb[0], rgb[1], rgb[2]) },
+					u_c2: { value: new THREE.Vector3(rgb[3], rgb[4], rgb[5]) },
+				},
+			});
+
+			Stage.addFlat(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
+			Stage.onFrame(tick);
+			Stage.onResize(function (m) {
+				mat.uniforms.u_aspect.value = m.pxW / m.pxH;
+			});
+			mat.uniforms.u_aspect.value = Stage.metrics().pxW / Stage.metrics().pxH;
 		},
 
 		setTone: function (tone) {
-			if (!gl) return;
+			if (!mat) return;
 			var e = mix * mix * (3 - 2 * mix);
 			for (var i = 0; i < 6; i++) from[i] = from[i] + (to[i] - from[i]) * e;
-			to = hexToRgb(tone[0]).concat(hexToRgb(tone[1]));
+			to = pair(tone);
 			mix = 0;
 		},
 
@@ -190,11 +150,6 @@ window.Backdrop = (function () {
 		look: function (x, y) {
 			ptrTarget[0] = x;
 			ptrTarget[1] = y;
-		},
-
-		stop: function () {
-			if (raf) cancelAnimationFrame(raf);
-			raf = 0;
 		},
 	};
 })();
