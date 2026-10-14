@@ -3,16 +3,25 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-		<title>오늘의 말씀 — 한 줄씩 넘겨 읽는 MZ 시집</title>
+		<title>오늘의 말씀 — 열네 장에서 세 장을 뽑는 MZ 시집</title>
 		<link rel="stylesheet" href="style.css" />
 	</head>
-	<body class="is-cover">
+	<body class="is-picking">
 		<canvas id="bg" aria-hidden="true"></canvas>
 
-		<div class="cover" id="cover">
-			<p class="cover__title">오늘의 말씀</p>
-			<p class="cover__enter">눌러서 시작</p>
+		<div class="stage" id="stage">
+			<p class="title" id="title">오늘의 말씀</p>
+			<div class="deck" aria-hidden="true"></div>
+			<p class="hint" id="hint">세 장을 고르세요</p>
+			<footer class="meter">
+				<span id="page">01 / 03</span>
+				<span class="meter__bar"><i id="bar"></i></span>
+			</footer>
 		</div>
+
+		<!-- 카드는 WebGL 안에 있어서 탭으로 짚을 수가 없다. 카드가 그려지는
+		     자리마다 투명한 버튼을 겹쳐 두어, 포커스와 읽어주기를 돌려준다. -->
+		<div class="picks" id="picks" role="group" aria-label="열네 장의 카드"></div>
 
 		<button class="mute" id="mute" type="button" aria-label="소리 끄기" aria-pressed="false">
 			<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -28,34 +37,25 @@
 			</svg>
 		</button>
 
-		<main
-			class="stage"
-			id="stage"
-			role="button"
-			tabindex="0"
-			aria-label="누르면 다음 줄이 나타납니다"
-		>
-			<div class="verse" id="verse" aria-live="polite"></div>
-			<p class="hint" id="hint">눌러서 한 줄씩</p>
-			<footer class="meter">
-				<span id="page">01 / 14</span>
-				<span class="meter__bar"><i id="bar"></i></span>
-			</footer>
-		</main>
+		<!-- WebGL 이 없을 때 물러설 자리. 카드 없이 글만 띄운다 -->
+		<div class="verse" id="verse" aria-live="polite"></div>
 
 		<div class="outro" id="outro">
 			<p class="outro__mark">끝</p>
 			<p class="outro__count">오늘의 말씀은<br />여기까지입니다</p>
-			<button class="again" id="again" type="button">처음부터</button>
+			<button class="again" id="again" type="button">다시 뽑기</button>
 		</div>
 
 		<noscript>
 			<p style="padding: 6rem 1.5rem; text-align: center">이 작품은 자바스크립트로 움직입니다.</p>
 		</noscript>
 
+		<script src="assets/three.min.js"></script>
 		<script src="aphorisms.js"></script>
-		<script src="sound.js"></script>
+		<script src="stage.js"></script>
 		<script src="background.js"></script>
+		<script src="deck.js"></script>
+		<script src="sound.js"></script>
 		<script src="app.js"></script>
 	</body>
 </html>
