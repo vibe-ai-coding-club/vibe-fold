@@ -162,7 +162,7 @@ window.Chime = (function () {
       wet.connect(verb);
       verb.connect(master);
 
-      drone = buildDrone(ROOTS[moodIndex] || ROOTS[0]);
+      drone = buildDrone(ROOTS[moodIndex % ROOTS.length] || ROOTS[0]);
       alive = true;
 
       /* 일부 브라우저는 만들어 두고도 멈춰 둔다. 제스처 안이니 깨워도 된다. */
@@ -176,7 +176,7 @@ window.Chime = (function () {
 		   바꾸는 방식이고, 귀에는 다음 화음이 들어오는 것으로 들린다. */
     setMood: function (moodIndex) {
       if (!alive || !drone) return;
-      var root = ROOTS[moodIndex] || drone.root;
+      var root = ROOTS[moodIndex % ROOTS.length] || drone.root;
       var t = now();
       var dip = 0.55; /* 숨을 죽이는 데 걸리는 시간 */
 
