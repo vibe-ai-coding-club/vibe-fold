@@ -1,0 +1,1689 @@
+<!doctype html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>인터넷 지층</title>
+		<!-- 픽셀 폰트 Galmuri11. 12px의 배수에서 또렷하게 보인다. -->
+		<link rel="stylesheet" href="assets/fonts.css" />
+		<style>
+			:root {
+				--ink: #1b1420;
+				--paper: #f4ecd8;
+				--paper-2: #e6dcc4;
+				--muted: #6e655a; /* 종이 위 보조 글씨. 대비 4.86:1 */
+				--accent: #ffd34d;
+				--rock: #2a2230;
+				--font: 'Galmuri11';
+			}
+			* {
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				margin: 0;
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+				background: var(--rock);
+				color: var(--ink);
+				font-family: var(--font), system-ui, sans-serif;
+				font-size: 12px;
+				-webkit-font-smoothing: none;
+				-webkit-user-select: none;
+				user-select: none;
+				-webkit-tap-highlight-color: transparent;
+			}
+			#col {
+				position: relative;
+				height: 100%;
+				margin: 0 auto;
+				overflow: hidden;
+			}
+			#screen:focus {
+				outline: none;
+			}
+			#screen {
+				position: absolute;
+				left: 0;
+				top: 0;
+				display: block;
+				touch-action: none;
+				cursor: pointer;
+			}
+			button {
+				font: inherit;
+				color: var(--ink);
+				background: var(--paper);
+				border: 2px solid var(--ink);
+				border-radius: 0;
+				box-shadow: 0 3px 0 var(--ink);
+				padding: 8px 12px;
+				cursor: pointer;
+			}
+			button:active {
+				transform: translateY(2px);
+				box-shadow: 0 1px 0 var(--ink);
+			}
+			button:focus-visible {
+				outline: 3px solid var(--accent);
+				outline-offset: 2px;
+			}
+			[hidden] {
+				display: none !important;
+			}
+
+			/* 오른쪽 깊이 막대: 층 색 칸, 유물마다 점 하나, 지금 위치 화살표 */
+			#gauge {
+				position: absolute;
+				right: 6px;
+				top: 16px;
+				bottom: 64px;
+				width: 14px;
+				pointer-events: none;
+			}
+			.gauge-bar {
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+				border: 2px solid var(--ink);
+				box-shadow: 2px 2px 0 var(--ink);
+			}
+			.gauge-cap {
+				height: 6px;
+				flex: none;
+			}
+			.gauge-seg {
+				flex: 1;
+				display: flex;
+				flex-direction: column;
+				justify-content: space-evenly;
+				align-items: center;
+				border-top: 2px solid var(--ink);
+			}
+			.gauge-seg i {
+				width: 6px;
+				height: 6px;
+				background: rgba(27, 20, 32, 0.45);
+			}
+			.gauge-seg i.done {
+				background: var(--paper);
+				box-shadow: 0 0 0 1px var(--ink);
+			}
+			.gauge-seg i.rare {
+				background: var(--accent);
+			}
+			.gauge-mark {
+				position: absolute;
+				right: 22px;
+				top: 0;
+				transform: translateY(-50%);
+				background: var(--ink);
+				color: var(--paper);
+				padding: 3px 6px;
+				white-space: nowrap;
+				transition: top 0.5s;
+			}
+			.gauge-mark::after {
+				content: '';
+				position: absolute;
+				right: -6px;
+				top: 50%;
+				margin-top: -6px;
+				border: 6px solid transparent;
+				border-right: 0;
+				border-left-color: var(--ink);
+			}
+			#sound-btn {
+				position: absolute;
+				right: 10px;
+				bottom: 12px;
+				padding: 6px 10px;
+			}
+
+			/* 겹쳐 뜨는 판 */
+			.layer {
+				position: absolute;
+				inset: 0;
+				display: grid;
+				place-items: center;
+				padding: 16px 12px;
+				background: rgba(27, 20, 32, 0.55);
+			}
+			.sheet {
+				width: 100%;
+				max-width: 340px;
+				max-height: 100%;
+				overflow: auto;
+				background: var(--paper);
+				border: 2px solid var(--ink);
+				box-shadow: 0 5px 0 var(--ink);
+				padding: 18px 16px;
+				line-height: 1.5;
+			}
+			.sheet h1,
+			.sheet h2,
+			.sheet p {
+				margin: 0;
+			}
+			.eyebrow {
+				font-size: 12px;
+				color: var(--muted);
+			}
+			/* 길어지는 판: 내용은 스크롤되고, 아래 버튼은 늘 보이게 붙여 둔다 */
+			.sheet.split {
+				display: flex;
+				flex-direction: column;
+				overflow: hidden;
+				padding: 0;
+			}
+			.split > .sheet-body {
+				flex: 1 1 auto;
+				min-height: 0;
+				overflow: auto;
+				padding: 18px 16px 12px;
+			}
+			.split > .sheet-foot {
+				flex: none;
+				padding: 12px 16px 16px;
+				border-top: 2px solid var(--ink);
+			}
+
+			/* 타이틀: 상자 대신 땅 위에 로고와 시작 버튼을 얹는다 */
+			/* 로고는 하늘에, 소개와 시작 버튼은 땅 위에. --sky는 하늘 높이(스크립트가 넣는다). */
+			#title {
+				display: flex;
+				flex-direction: column;
+				justify-content: space-between;
+				align-items: center;
+				padding: 0 12px 14vh;
+				background: linear-gradient(rgba(27, 20, 32, 0) 45%, rgba(27, 20, 32, 0.6));
+				cursor: pointer;
+				text-align: center;
+			}
+			.title-sky {
+				height: var(--sky, 208px);
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				gap: 10px;
+			}
+			.title-ground {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				gap: 12px;
+			}
+			/* 부제는 판 없이 하늘 위에 글씨만 */
+			.tag {
+				margin: 0;
+				color: var(--ink);
+			}
+			.logo {
+				margin: 0;
+				font-size: 48px;
+				line-height: 1.1;
+				color: var(--paper);
+				/* 픽셀 외곽선과 아래 그림자 */
+				text-shadow:
+					3px 0 0 var(--ink),
+					-3px 0 0 var(--ink),
+					0 3px 0 var(--ink),
+					0 -3px 0 var(--ink),
+					3px 3px 0 var(--ink),
+					-3px 3px 0 var(--ink),
+					3px -3px 0 var(--ink),
+					-3px -3px 0 var(--ink),
+					0 9px 0 var(--ink);
+			}
+			.intro {
+				margin: 0;
+				max-width: 280px;
+				background: rgba(27, 20, 32, 0.85);
+				color: var(--paper);
+				padding: 8px 12px;
+				line-height: 1.6;
+			}
+			#start {
+				margin-top: 8px;
+				font-size: 18px;
+				background: var(--accent);
+				padding: 10px 18px;
+			}
+			#start .blink {
+				display: inline-block;
+				animation: blink 1s steps(2, jump-none) infinite;
+			}
+			@keyframes blink {
+				50% {
+					opacity: 0;
+				}
+			}
+			@media (prefers-reduced-motion: reduce) {
+				#start .blink {
+					animation: none;
+				}
+			}
+
+			/* 유물 카드 */
+			.card-art {
+				display: block;
+				width: min(100%, 45vh);
+				margin-inline: auto;
+				aspect-ratio: 3 / 2;
+				image-rendering: pixelated;
+				background: var(--paper-2);
+				border: 2px solid var(--ink);
+				margin-bottom: 12px;
+			}
+			.badge {
+				display: inline-block;
+				background: var(--accent);
+				border: 2px solid var(--ink);
+				font-size: 12px;
+				padding: 1px 8px;
+				margin-bottom: 6px;
+			}
+			#card.rare .sheet {
+				border-color: #b8860b;
+				box-shadow:
+					0 0 0 3px var(--accent),
+					0 7px 0 var(--ink);
+			}
+			#card.rare .card-art {
+				background: #fff3c4;
+			}
+			#card-word {
+				font-size: 24px;
+				margin: 2px 0;
+			}
+			.facts {
+				margin: 12px 0 0;
+				font-size: 12px;
+			}
+			.facts div {
+				display: grid;
+				grid-template-columns: 64px 1fr;
+				align-items: baseline;
+				gap: 8px;
+				padding: 6px 0;
+				border-top: 1px dashed var(--muted);
+			}
+			.facts dt {
+				color: var(--muted);
+			}
+			.facts dd {
+				margin: 0;
+				line-height: 1.6;
+			}
+			.ask {
+				font-size: 12px;
+				margin-bottom: 8px !important;
+			}
+			.answers {
+				display: grid;
+				grid-template-columns: repeat(3, 1fr);
+				gap: 6px;
+			}
+			.answers button {
+				padding: 8px 4px;
+			}
+
+			/* 결과 */
+			#result h2 {
+				font-size: 24px;
+				margin: 2px 0 4px;
+			}
+			.strata {
+				margin: 16px 0 10px;
+				border: 2px solid var(--ink);
+			}
+			.strata-row {
+				display: grid;
+				grid-template-columns: 96px 1fr 40px;
+				white-space: nowrap;
+				align-items: center;
+				gap: 8px;
+				padding: 6px 8px;
+				font-size: 12px;
+				color: var(--paper);
+			}
+			.strata-bar {
+				height: 10px;
+				background: rgba(0, 0, 0, 0.35);
+			}
+			.strata-bar span {
+				display: block;
+				height: 100%;
+			}
+			.strata-row em {
+				font-style: normal;
+				text-align: right;
+				font-size: 12px;
+			}
+			.deepest {
+				font-size: 12px;
+			}
+			.found-title {
+				font-size: 12px;
+				margin: 14px 0 6px !important;
+				color: var(--muted);
+			}
+			.found {
+				list-style: none;
+				margin: 0;
+				padding: 0;
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 6px;
+			}
+			.found li {
+				border: 2px solid var(--ink);
+				background: var(--paper-2);
+				padding: 5px 8px;
+				font-size: 12px;
+			}
+			.found li.rare {
+				background: #fff3c4;
+			}
+			.found small {
+				display: block;
+				font-size: 12px;
+				color: var(--muted);
+			}
+			.sheet .wide {
+				display: block;
+				width: 100%;
+			}
+
+			/* 엔딩 */
+			#ending {
+				background: none;
+				align-items: end;
+				padding-bottom: 96px;
+			}
+			#ending .sheet {
+				text-align: center;
+			}
+			#ending .line {
+				font-size: 18px;
+				margin-bottom: 6px;
+			}
+			#ending .sub {
+				font-size: 12px;
+				color: var(--muted);
+				margin-bottom: 14px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="col">
+			<canvas id="screen" tabindex="0" aria-label="발굴장. 탭하거나 스페이스를 눌러 흙더미를 파요."></canvas>
+
+			<div id="gauge" role="img" hidden>
+				<div class="gauge-bar" id="gauge-bar"></div>
+				<div class="gauge-mark" id="gauge-mark"></div>
+			</div>
+			<button id="sound-btn" aria-label="소리 끄기" aria-pressed="false" hidden>♪</button>
+
+			<div class="layer" id="title">
+				<div class="title-sky">
+					<p class="tag" data-text="subtitle"></p>
+					<h1 class="logo" data-text="title"></h1>
+				</div>
+				<div class="title-ground">
+					<p class="intro" data-text="intro"></p>
+					<button id="start"><span class="blink">▶</span> <span data-text="startLabel"></span></button>
+				</div>
+			</div>
+
+			<div class="layer" id="card" role="dialog" aria-modal="true" aria-labelledby="card-word" hidden>
+				<div class="sheet split">
+					<div class="sheet-body">
+						<canvas class="card-art" id="card-art" width="288" height="192"></canvas>
+						<span class="badge" id="card-badge" data-text="rareLabel"></span>
+						<p class="eyebrow" id="card-meta"></p>
+						<h2 id="card-word"></h2>
+						<dl class="facts">
+							<div><dt>뜻</dt><dd id="card-meaning"></dd></div>
+							<div><dt>용례</dt><dd id="card-example"></dd></div>
+							<div><dt>멸종 사유</dt><dd id="card-extinction"></dd></div>
+						</dl>
+					</div>
+					<div class="sheet-foot">
+						<p class="ask">이 말, 어때요?</p>
+						<div class="answers" id="answers"></div>
+					</div>
+				</div>
+			</div>
+
+			<div class="layer" id="result" role="dialog" aria-modal="true" aria-labelledby="result-name" hidden>
+				<div class="sheet split">
+					<div class="sheet-body">
+						<p class="eyebrow">당신의 지층</p>
+						<h2 id="result-name"></h2>
+						<p id="result-line"></p>
+						<div class="strata" id="result-strata"></div>
+						<p class="deepest" id="result-deepest"></p>
+						<p class="found-title">오늘 발굴한 유물</p>
+						<ul class="found" id="result-found"></ul>
+					</div>
+					<div class="sheet-foot">
+						<button class="wide" id="surface-btn">지표로 올라가기</button>
+					</div>
+				</div>
+			</div>
+
+			<div class="layer" id="ending" hidden>
+				<div class="sheet">
+					<p class="line" data-text="ending"></p>
+					<p class="sub" id="ending-sub"></p>
+					<button id="again">다시 파기</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- 제목, 밈 목록, 결과 문구, 규칙, 그림 목록은 모두 data.js에 있습니다. -->
+		<script src="data.js"></script>
+		<script>
+			(() => {
+				'use strict';
+
+				const D = window.MZ_DATA;
+
+				// ── 규격 ─────────────────────────────────────────
+				// 세계는 가로 180px로 그리고 화면에 정수배로 키운다. 아래 숫자는 모두 그 기준이다.
+				const W = 180;
+				const T = 4; // 흙 무늬 한 칸
+				const SKY = 104; // 지표 위 하늘 높이
+				const BEDROCK = 40;
+				const STEP = 76; // 흙더미 사이 간격
+				const LAYER_PAD = 18; // 층 윗부분 여백
+				// 유물 하나가 차지하는 칸. 틀 그림은 크기가 제각각이라 비율을 지켜 이 안에 맞춘다.
+				const FRAME_W = 72;
+				const FRAME_H = 48;
+				// 그림이 오기 전까지 쓰는 임시 틀. face는 글자가 올라가는 화면 면 [x, y, 너비, 높이].
+				const PLACEHOLDER = { w: 64, h: 40, face: [6, 8, 52, 22] };
+				const FRAME_X = (W - FRAME_W) / 2;
+				// 가운데로 파 내려가는 굴
+				const SHAFT_X = 46;
+				const SHAFT_W = 88;
+				// 유물을 덮고 있는 흙더미 (유물 위치 기준)
+				const MOUND = { x: -6, y: -6, w: FRAME_W + 12, h: FRAME_H + 12 };
+				const JUNK = 22; // 잡동사니 한 칸
+				const JUNK_OUT = 20; // 굴 벽에서 굴 안쪽으로 나온 길이. 나머지 조금만 벽에 걸쳐 있다.
+				const TAPS = Math.max(1, D.taps || 3);
+				const PER_LAYER = Math.max(1, D.perLayer || 2);
+				const COMBO_GAP = 0.3; // 이 간격(초)보다 빠르게 이어 치면 연타
+
+				const INK = '#1b1420';
+				const PAPER = '#f4ecd8';
+				const ACCENT = '#ffd34d';
+				const SKY_COLOR = '#9fd8ff';
+				const ROCK = '#2a2230';
+				const FACE_COLOR = '#b8d8b0';
+				const NEW_SOIL = '#f2d3a8';
+
+				const maxScore = Math.max(...D.answers.map((a) => a.score));
+				const topAnswer = D.answers.find((a) => a.score === maxScore);
+
+				// ── 도움 함수 ──────────────────────────────────────
+				const $ = (s) => document.querySelector(s);
+				const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+				const rand = (a, b) => a + Math.random() * (b - a);
+				const randInt = (a, b) => Math.floor(rand(a, b + 1));
+				const shuffle = (list) => {
+					const out = list.slice();
+					for (let i = out.length - 1; i > 0; i--) {
+						const j = Math.floor(Math.random() * (i + 1));
+						[out[i], out[j]] = [out[j], out[i]];
+					}
+					return out;
+				};
+				const rgb = (h) => {
+					const n = parseInt(h.slice(1), 16);
+					return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+				};
+				const mix = (a, b, t) => {
+					const A = rgb(a);
+					const B = rgb(b);
+					return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+				};
+				const pickShade = () => {
+					const p = Math.random();
+					return p < 0.55 ? 0 : p < 0.75 ? 1 : p < 0.9 ? 2 : 3;
+				};
+				const shadesOf = (base) => [base, mix(base, '#000000', 0.08), mix(base, '#ffffff', 0.08), mix(base, '#000000', 0.2)];
+				const chrome = (mode) => {
+					try {
+						window.parent.postMessage({ from: 'vibe-fold:chapter', chrome: mode }, '*');
+					} catch {}
+				};
+
+				// ── 글자 채우기 ────────────────────────────────────
+				document.title = D.title;
+				for (const el of document.querySelectorAll('[data-text]')) el.textContent = D[el.dataset.text];
+
+				// ── 그림과 폰트 ────────────────────────────────────
+				// data.js의 sprites에 적힌 것만 불러온다. 없는 파일을 찾느라 오류를 내지 않으려고.
+				const sprites = {};
+				for (const name of D.sprites || []) {
+					const img = new Image();
+					img.onload = () => (sprites[name] = img);
+					img.src = `assets/${name}.webp`;
+				}
+
+				// 캔버스는 폰트가 다 불러와진 뒤에야 그 폰트로 그린다
+				const fontFamily = "'Galmuri11', system-ui, sans-serif";
+				if (document.fonts) {
+					document.fonts.load(`12px ${fontFamily}`).catch(() => {});
+					document.fonts.load(`bold 12px ${fontFamily}`).catch(() => {});
+				}
+				// 픽셀 폰트는 12px 배수에서 또렷하다. 그보다 작으면 그대로 둔다.
+				const crisp = (px) => (px >= 12 ? Math.floor(px / 12) * 12 : px);
+
+				// ── 소리 ──────────────────────────────────────────
+				// 파일 없이 WebAudio로 만든 칩튠 효과음. 막혀도 작품은 그대로 돈다.
+				const Sound = {
+					ac: null,
+					on: true,
+					noiseBuf: null,
+					init() {
+						if (this.ac) return;
+						try {
+							this.ac = new (window.AudioContext || window.webkitAudioContext)();
+							this.ac.resume().catch(() => {});
+							const len = this.ac.sampleRate * 0.4;
+							this.noiseBuf = this.ac.createBuffer(1, len, this.ac.sampleRate);
+							const ch = this.noiseBuf.getChannelData(0);
+							for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+						} catch {
+							this.ac = null;
+						}
+					},
+					tone(f, d, type = 'square', v = 0.04, f2 = null, at = 0) {
+						if (!this.on || !this.ac) return;
+						const t = this.ac.currentTime + at;
+						const o = this.ac.createOscillator();
+						const g = this.ac.createGain();
+						o.type = type;
+						o.frequency.setValueAtTime(f, t);
+						if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+						g.gain.setValueAtTime(v, t);
+						g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+						o.connect(g).connect(this.ac.destination);
+						o.start(t);
+						o.stop(t + d + 0.02);
+					},
+					noise(d, v, freq) {
+						if (!this.on || !this.ac) return;
+						const t = this.ac.currentTime;
+						const src = this.ac.createBufferSource();
+						const filter = this.ac.createBiquadFilter();
+						const g = this.ac.createGain();
+						src.buffer = this.noiseBuf;
+						filter.type = 'bandpass';
+						filter.frequency.value = freq;
+						g.gain.setValueAtTime(v, t);
+						g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+						src.connect(filter).connect(g).connect(this.ac.destination);
+						src.start(t);
+						src.stop(t + d);
+					},
+					// 빠르게 이어 칠수록 음이 올라간다
+					hit(streak) {
+						this.noise(0.09, 0.14, 650);
+						this.tone(196 * (1 + 0.25 * (streak - 1)), 0.09, 'square', 0.04);
+					},
+					smash() {
+						this.noise(0.3, 0.2, 380);
+						[523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.12, 'square', 0.035, null, 0.05 + i * 0.07));
+					},
+					combo() {
+						[784, 988, 1175].forEach((f) => this.tone(f, 0.25, 'square', 0.025, null, 0.34));
+					},
+					rare() {
+						[1047, 1319, 1568, 2093, 1568, 2093].forEach((f, i) => this.tone(f, 0.1, 'triangle', 0.05, null, 0.35 + i * 0.06));
+					},
+					blip() {
+						this.tone(880, 0.05, 'square', 0.03);
+					},
+					thud() {
+						this.tone(110, 0.35, 'triangle', 0.15, 50);
+					},
+					// 엔딩에서 지금 쓰는 말이 하나씩 솟아오를 때. 하나씩 음이 올라간다.
+					pop(i) {
+						const up = 2 ** ((i * 4) / 12);
+						this.tone(523 * up, 0.14, 'square', 0.04, 1046 * up);
+					},
+					ending() {
+						[784, 659, 523, 392].forEach((f, i) => this.tone(f, 0.4, 'triangle', 0.05, null, i * 0.32));
+					},
+				};
+
+				// ── 상태 ──────────────────────────────────────────
+				const col = $('#col');
+				const canvas = $('#screen');
+				const ctx = canvas.getContext('2d');
+				const buf = document.createElement('canvas'); // 세계를 원래 픽셀 크기로 그리는 곳
+				const b = buf.getContext('2d');
+
+				let k = 2; // CSS px / 세계 px
+				let K = 2; // 기기 px / 세계 px
+				let viewH = 300;
+
+				let layers, surface, stations, surfaceArts, junk;
+				let worldH, bedrockY, edges, grass, grassDark, newShades, newShade;
+				// title → ready(칠 수 있음) → reveal(유물 반짝) → card → moving(다음 흙더미로) … → bottom → result → ending
+				let state = 'title';
+				let idx = 0;
+				let cam = 0;
+				let camTarget = 0;
+				let shaftBottom = SKY;
+				let shaftTarget = SKY;
+				let timer = 0;
+				let shake = 0;
+				let streak = 0;
+				let lastTap = 0;
+				let tapped = false;
+				let particles = [];
+				let impacts = [];
+				let popups = [];
+				let bury = 0;
+				let endWait = 0;
+				let endT = 0; // 엔딩이 시작되고(지표에 닿고) 흐른 시간
+				let clock = 0;
+
+				const allArtifacts = () => (stations || []).concat(surfaceArts || []);
+				const current = () => stations[idx];
+
+				// ── 세계 만들기 ─────────────────────────────────────
+				function build() {
+					surface = D.layers.find((l) => l.surface) || null;
+					layers = D.layers.filter((l) => !l.surface).map((l, index) => ({ ...l, index }));
+
+					// 층마다 PER_LAYER개를 뽑아 가운데 굴을 따라 묻는다
+					stations = [];
+					let y = SKY;
+					for (const L of layers) {
+						const picks = shuffle(D.artifacts.filter((a) => a.layer === L.id)).slice(0, PER_LAYER);
+						L.top = y;
+						L.height = LAYER_PAD + 6 + Math.max(1, picks.length) * STEP;
+						L.bottom = y + L.height;
+						y = L.bottom;
+						L.shades = shadesOf(L.soil);
+						L.cave = mix(L.soil, '#000000', 0.55);
+						L.caveEdge = mix(L.soil, '#000000', 0.4);
+						L.texture = makeTexture(L);
+						picks.forEach((data, j) => stations.push(makeArtifact(data, L, FRAME_X, L.top + LAYER_PAD + j * STEP)));
+					}
+					bedrockY = y;
+					worldH = y + BEDROCK;
+					if (stations.length) stations[randInt(0, stations.length - 1)].rare = true;
+
+					grass = surface ? surface.soil : '#5fbf4a';
+					grassDark = mix(grass, '#000000', 0.25);
+					newShades = shadesOf(NEW_SOIL);
+					newShade = Uint8Array.from({ length: (SKY / T) * (W / T) }, pickShade);
+
+					// 굴 벽을 울퉁불퉁하게
+					edges = Array.from({ length: Math.ceil(worldH / T) }, () => [randInt(0, 3), randInt(0, 3)]);
+
+					// 지표의 말은 땅 위에 서 있다가 엔딩에서 덮인다
+					const onSurface = surface ? D.artifacts.filter((a) => a.layer === surface.id).slice(0, 3) : [];
+					const spots = [
+						[2, SKY - 50],
+						[96, SKY - 50],
+						[FRAME_X, SKY - 100],
+					];
+					surfaceArts = onSurface.map((data, i) => {
+						const a = makeArtifact(data, surface, spots[i][0], spots[i][1]);
+						a.broken = true;
+						return a;
+					});
+
+					// 잡동사니는 굴 벽에 살짝 걸쳐 있다가, 굴이 그 깊이를 지나면 드러난다.
+					// 유물 사이 빈자리에 왼쪽·오른쪽을 번갈아 놓는다.
+					junk = [];
+					for (const L of layers) {
+						const gaps = stations.filter((a) => a.layer === L).map((a) => a.y + FRAME_H);
+						let left = Math.random() < 0.5;
+						(L.junk || []).forEach((name, i) => {
+							if (!gaps.length) return;
+							const x = left ? SHAFT_X + JUNK_OUT - JUNK : SHAFT_X + SHAFT_W - JUNK_OUT;
+							junk.push({ name, x, y: gaps[i % gaps.length], flip: !left, tilt: rand(-0.35, 0.35) });
+							left = !left;
+						});
+					}
+
+					idx = 0;
+					state = 'title';
+					cam = camTarget = 0;
+					shaftBottom = shaftTarget = stations.length ? stations[0].y + MOUND.y : bedrockY;
+					timer = shake = 0;
+					streak = 0;
+					tapped = false;
+					particles = [];
+					impacts = [];
+					popups = [];
+					bury = 0;
+					endWait = 0;
+					endT = 0;
+					buildGauge();
+				}
+
+				function makeTexture(L) {
+					const c = document.createElement('canvas');
+					c.width = W;
+					c.height = L.height;
+					const g = c.getContext('2d');
+					for (let y = 0; y < L.height; y += T) {
+						for (let x = 0; x < W; x += T) {
+							g.fillStyle = L.shades[pickShade()];
+							g.fillRect(x, y, T, T);
+						}
+					}
+					// 자갈
+					g.fillStyle = L.shades[3];
+					for (let i = 0; i < L.height / 6; i++) g.fillRect(randInt(0, W - 2), randInt(0, L.height - 2), 2, 1);
+					return c;
+				}
+
+				function makeArtifact(data, L, x, y) {
+					const a = { data, layer: L, x, y, frame: data.frame || L.frame, hits: 0, broken: false, rare: false, flash: 0, answer: null, art: null, cracks: [], speckles: moundSpeckles() };
+					// 칠 때마다 커지는 금을 미리 그려 둔다
+					for (let h = 1; h < TAPS; h++) a.cracks.push(crackPixels(MOUND.w, MOUND.h, 2 + h, 6 + h * 4));
+					return a;
+				}
+
+				function crackPixels(w, h, rays, len) {
+					const px = [];
+					const ox = randInt(w * 0.3, w * 0.7);
+					const oy = randInt(h * 0.3, h * 0.7);
+					const base = Math.random() * Math.PI * 2;
+					for (let r = 0; r < rays; r++) {
+						let ang = base + (r * Math.PI * 2) / rays + rand(-0.4, 0.4);
+						let x = ox;
+						let y = oy;
+						const n = randInt(len - 2, len + 2);
+						for (let s = 0; s < n; s++) {
+							x += Math.cos(ang);
+							y += Math.sin(ang);
+							ang += rand(-0.5, 0.5);
+							const X = Math.round(x);
+							const Y = Math.round(y);
+							if (X >= 1 && Y >= 1 && X < w - 1 && Y < h - 1) px.push(X, Y);
+						}
+					}
+					return px;
+				}
+
+				// ── 유물 그리기 ─────────────────────────────────────
+				function box(g, x, y, w, h, fill, round = false) {
+					g.fillStyle = INK;
+					g.fillRect(x, y, w, h);
+					g.fillStyle = fill;
+					g.fillRect(x + 1, y + 1, w - 2, h - 2);
+					if (round) {
+						for (const [px, py] of [
+							[x, y],
+							[x + w - 1, y],
+							[x, y + h - 1],
+							[x + w - 1, y + h - 1],
+						])
+							g.clearRect(px, py, 1, 1);
+						g.fillStyle = INK;
+						for (const [px, py] of [
+							[x + 1, y + 1],
+							[x + w - 2, y + 1],
+							[x + 1, y + h - 2],
+							[x + w - 2, y + h - 2],
+						])
+							g.fillRect(px, py, 1, 1);
+					}
+				}
+
+				// 그림이 오기 전까지 쓰는 임시 틀. 모양만 대략 그 시대 물건을 닮게.
+				function drawFramePlaceholder(g, type) {
+					let face = FACE_COLOR;
+					switch (type) {
+						case 'crt':
+							box(g, 0, 0, 64, 40, '#d9cdb0');
+							g.fillStyle = '#8f8578';
+							g.fillRect(6, 34, 36, 1);
+							g.fillStyle = ACCENT;
+							g.fillRect(56, 34, 3, 2);
+							break;
+						case 'pmp':
+							box(g, 0, 4, 64, 32, '#9aa3ad', true);
+							g.fillStyle = INK;
+							g.fillRect(2, 19, 3, 1);
+							g.fillRect(3, 18, 1, 3);
+							g.fillRect(60, 15, 2, 2);
+							g.fillRect(60, 22, 2, 2);
+							break;
+						case 'oldphone':
+							box(g, 0, 3, 64, 34, '#2b2b33', true);
+							g.fillStyle = '#8f8578';
+							g.fillRect(59, 17, 3, 4);
+							break;
+						case 'smartphone':
+							box(g, 3, 5, 58, 30, '#3a3f4a', true);
+							g.fillStyle = '#cfc6b8';
+							for (const [px, py] of [
+								[58, 31],
+								[57, 32],
+								[59, 32],
+								[56, 33],
+							])
+								g.fillRect(px, py, 1, 1);
+							break;
+						case 'bubble':
+							box(g, 0, 0, 64, 34, '#cfc6b8', true);
+							for (let i = 0; i < 6; i++) {
+								g.fillStyle = INK;
+								g.fillRect(8, 33 + i, 1, 1);
+								g.fillRect(14 - i, 33 + i, 1, 1);
+								g.fillStyle = '#cfc6b8';
+								g.fillRect(9, 33 + i, Math.max(0, 5 - i), 1);
+							}
+							face = '#e9e2d4';
+							break;
+						default:
+							box(g, 0, 0, 64, 40, '#8f8578', true);
+					}
+					const [fx, fy, fw, fh] = PLACEHOLDER.face;
+					box(g, fx - 1, fy - 1, fw + 2, fh + 2, face);
+				}
+
+				// 임시 틀을 원래 크기로 그린 캔버스
+				function placeholderCanvas(a) {
+					if (a.art) return a.art;
+					const c = document.createElement('canvas');
+					c.width = PLACEHOLDER.w;
+					c.height = PLACEHOLDER.h;
+					drawFramePlaceholder(c.getContext('2d'), a.frame);
+					a.art = c;
+					return c;
+				}
+
+				// 틀 그림과 화면 면을 FRAME_W×FRAME_H 칸 기준 좌표로. 그림이 없으면 임시 틀.
+				function specOf(a) {
+					const img = sprites['frame-' + a.frame];
+					const nw = img ? img.naturalWidth : PLACEHOLDER.w;
+					const nh = img ? img.naturalHeight : PLACEHOLDER.h;
+					const conf = D.frames && D.frames[a.frame];
+					const face = img ? (conf && conf.face) || [nw * 0.1, nh * 0.2, nw * 0.8, nh * 0.55] : PLACEHOLDER.face;
+					const s = Math.min(FRAME_W / nw, FRAME_H / nh);
+					const x = (FRAME_W - nw * s) / 2;
+					const y = (FRAME_H - nh * s) / 2;
+					return {
+						img: img || placeholderCanvas(a),
+						x,
+						y,
+						w: nw * s,
+						h: nh * s,
+						face: { x: x + face[0] * s, y: y + face[1] * s, w: face[2] * s, h: face[3] * s },
+					};
+				}
+
+				// 유물 하나를 그리고 화면 면에 말을 쓴다. (ox, oy)는 칸의 왼쪽 위, scale은 세계 1px의 크기.
+				// 글자까지 고해상도로 그려야 읽힌다.
+				function drawArtifact(g, a, ox, oy, scale, { clipBottom = Infinity, flash = true } = {}) {
+					if (clipBottom <= oy) return;
+					const sp = specOf(a);
+					g.save();
+					if (clipBottom < Infinity) {
+						g.beginPath();
+						g.rect(ox - scale, oy - scale, (FRAME_W + 2) * scale, clipBottom - oy + scale);
+						g.clip();
+					}
+					g.imageSmoothingEnabled = false;
+					g.drawImage(sp.img, ox + sp.x * scale, oy + sp.y * scale, sp.w * scale, sp.h * scale);
+					if (flash && a.flash > 0 && Math.floor(a.flash * 10) % 2 === 0) {
+						g.strokeStyle = ACCENT;
+						g.lineWidth = scale;
+						g.strokeRect(ox + (sp.x - 0.5) * scale, oy + (sp.y - 0.5) * scale, (sp.w + 1) * scale, (sp.h + 1) * scale);
+					}
+
+					const f = sp.face;
+					const text = a.data.word;
+					const room = (f.w - 4) * scale;
+					let size = crisp(Math.min(9, f.h * 0.62) * scale);
+					g.font = `${size}px ${fontFamily}`;
+					// 넘치면 12px씩 줄이고, 그래도 넘치면 그때만 비율로 줄인다
+					while (g.measureText(text).width > room && size > 12) {
+						size -= 12;
+						g.font = `${size}px ${fontFamily}`;
+					}
+					const w = g.measureText(text).width;
+					if (w > room) g.font = `${(size * room) / w}px ${fontFamily}`;
+					g.beginPath();
+					g.rect(ox + f.x * scale, oy + f.y * scale, f.w * scale, f.h * scale);
+					g.clip();
+					g.fillStyle = INK;
+					g.textAlign = 'center';
+					g.textBaseline = 'middle';
+					g.fillText(text, ox + (f.x + f.w / 2) * scale, oy + (f.y + f.h / 2 + 0.5) * scale);
+					g.restore();
+				}
+
+				// ── 파기 ──────────────────────────────────────────
+				function tap(sx, sy) {
+					if (state !== 'ready') return;
+					const a = current();
+					const now = performance.now() / 1000;
+					// 첫 번째 탭은 늘 연타의 시작. 그다음부터는 빨리 이어 쳤을 때만 이어진다.
+					streak = a.hits > 0 && now - lastTap < COMBO_GAP ? streak + 1 : 1;
+					lastTap = now;
+					a.hits++;
+					tapped = true;
+
+					// 맞은 자리. 화면 어디를 눌러도 흙더미 안쪽에 맞는다.
+					const mx = a.x + MOUND.x;
+					const my = a.y + MOUND.y;
+					const ix = sx == null ? mx + MOUND.w / 2 : clamp(sx, mx + 6, mx + MOUND.w - 6);
+					const iy = sy == null ? my + MOUND.h / 2 : clamp(sy + cam, my + 6, my + MOUND.h - 6);
+					impacts.push({ x: ix, y: iy, t: 0.2 });
+
+					if (a.hits < TAPS) {
+						shake = 0.12;
+						Sound.hit(streak);
+						burst(ix, iy, 6 + streak * 2, a.layer.shades, 50);
+						return;
+					}
+					smash(a, streak >= TAPS && TAPS > 1);
+				}
+
+				function smash(a, combo) {
+					a.broken = true;
+					a.flash = combo ? 1 : 0.7;
+					shaftBottom = shaftTarget = a.y + MOUND.y + MOUND.h;
+					state = 'reveal';
+					timer = a.flash;
+					shake = combo ? 0.4 : 0.25;
+					const cx = a.x + FRAME_W / 2;
+					const cy = a.y + FRAME_H / 2;
+					burst(cx, cy, combo ? 70 : 40, a.layer.shades, combo ? 120 : 80);
+					Sound.smash();
+					if (combo) {
+						popups.push({ text: D.comboText, x: cx, y: a.y - 4, t: 1.1 });
+						Sound.combo();
+					}
+					if (a.rare) {
+						burst(cx, cy, 30, [ACCENT, '#fff3c4', '#ffffff'], 70, 0);
+						Sound.rare();
+					}
+				}
+
+				function burst(x, y, n, colors, speed, g = 260) {
+					for (let i = 0; i < n; i++) {
+						const ang = rand(0, Math.PI * 2);
+						const sp = rand(speed * 0.3, speed);
+						particles.push({ x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - (g ? speed * 0.4 : 0), g, life: rand(0.35, 0.8), color: colors[randInt(0, colors.length - 1)] });
+					}
+				}
+
+				function answer(ans) {
+					if (state !== 'card' || justOpened()) return;
+					current().answer = ans;
+					Sound.blip();
+					closeModal();
+					updateHud();
+					next();
+				}
+
+				function next() {
+					idx++;
+					state = 'moving';
+					if (idx < stations.length) {
+						const a = current();
+						shaftTarget = a.y + MOUND.y;
+						camTarget = camFor(a);
+						updateHud();
+					} else {
+						shaftTarget = bedrockY;
+						camTarget = maxCam();
+						state = 'bottom';
+						timer = 0;
+					}
+				}
+
+				// ── 카메라 ────────────────────────────────────────
+				const maxCam = () => Math.max(0, worldH - viewH);
+				const camFor = (a) => clamp(a.y + FRAME_H / 2 - viewH * 0.42, 0, maxCam());
+
+				// ── 매 프레임 ──────────────────────────────────────
+				function update(dt) {
+					clock += dt;
+
+					// 굴은 일정한 속도로 파 내려간다
+					if (shaftBottom < shaftTarget) shaftBottom = Math.min(shaftTarget, shaftBottom + 240 * dt);
+
+					if (state === 'reveal') {
+						timer -= dt;
+						if (timer <= 0) {
+							state = 'card';
+							openCard(current());
+						}
+					} else if (state === 'moving') {
+						if (shaftBottom >= shaftTarget && Math.abs(camTarget - cam) < 0.5) state = 'ready';
+					} else if (state === 'bottom') {
+						if (shaftBottom >= shaftTarget && Math.abs(camTarget - cam) < 0.5) {
+							if (timer === 0) {
+								Sound.thud();
+								shake = 0.3;
+							}
+							timer += dt;
+							if (timer > 1.4) openResult();
+						}
+					} else if (state === 'ending') {
+						camTarget = 0;
+						if (cam < 1) {
+							// 지금 쓰는 말이 하나씩 땅 위로 솟아오른 뒤, 그 위로 흙이 덮인다
+							const before = endT;
+							endT += dt;
+							surfaceArts.forEach((a, i) => {
+								if (before < popAt(i) && endT >= popAt(i)) Sound.pop(i);
+							});
+							const buryAt = popAt(surfaceArts.length) + 0.6;
+							if (before < buryAt && endT >= buryAt) Sound.ending();
+							if (endT >= buryAt && bury < 1) {
+								bury = Math.min(1, bury + dt / 3.2);
+								const top = buryTop();
+								for (let n = 0; n < 3; n++) {
+									particles.push({ x: rand(0, W), y: cam - 2, vx: 0, vy: rand(90, 140), g: 0, life: Math.max(0.05, (top - cam) / 120), color: newShades[randInt(0, 3)] });
+								}
+							} else if (bury >= 1 && endWait < 0.6) {
+								endWait += dt;
+								if (endWait >= 0.6) showEnding();
+							}
+						}
+					}
+
+					cam += (camTarget - cam) * Math.min(1, dt * 6);
+					if (Math.abs(camTarget - cam) < 0.05) cam = camTarget;
+					if (shake > 0) shake -= dt;
+
+					for (const a of stations) if (a.flash > 0) a.flash -= dt;
+					for (const p of particles) {
+						p.vy += p.g * dt;
+						p.x += p.vx * dt;
+						p.y += p.vy * dt;
+						p.life -= dt;
+					}
+					particles = particles.filter((p) => p.life > 0);
+					for (const m of impacts) m.t -= dt;
+					impacts = impacts.filter((m) => m.t > 0);
+					for (const p of popups) {
+						p.t -= dt;
+						p.y -= 14 * dt;
+					}
+					popups = popups.filter((p) => p.t > 0);
+				}
+
+				const ease = (t) => 1 - (1 - t) ** 3;
+				// 살짝 넘쳤다가 제자리로 돌아오는 움직임
+				const easeOutBack = (t) => 1 + 2.7 * (t - 1) ** 3 + 1.7 * (t - 1) ** 2;
+				const popAt = (i) => 0.3 + i * 0.45;
+				// 엔딩 전에는 지표의 말이 땅속에 숨어 있다. 0이면 숨음, 1이면 제자리.
+				const riseOf = (i) => (state === 'ending' ? easeOutBack(clamp((endT - popAt(i)) / 0.35, 0, 1)) : 0);
+				const buryTop = () => SKY - Math.floor((ease(bury) * (SKY - 4)) / T) * T;
+
+				function render() {
+					const sh = shake > 0 ? Math.round(rand(-1.5, 1.5)) : 0;
+					const cy = Math.round(cam) + sh;
+					const sx = shake > 0 ? Math.round(rand(-1, 1)) : 0;
+
+					// 1. 세계를 원래 픽셀 크기로
+					b.setTransform(1, 0, 0, 1, sx, 0);
+					b.fillStyle = SKY_COLOR;
+					b.fillRect(-2, 0, W + 4, viewH);
+					b.fillStyle = '#ffffff';
+					for (const [x, y, w] of [
+						[14, 18, 22],
+						[120, 30, 28],
+						[70, 6, 16],
+					]) {
+						b.fillRect(x, y - cy, w, 3);
+						b.fillRect(x + 4, y - 2 - cy, w - 10, 2);
+					}
+
+					// 흙과 암반
+					for (const L of layers) {
+						const y = L.top - cy;
+						if (y > viewH || y + L.height < 0) continue;
+						b.drawImage(L.texture, 0, y);
+					}
+					b.fillStyle = ROCK;
+					b.fillRect(-2, bedrockY - cy, W + 4, viewH + BEDROCK);
+					b.fillStyle = '#3a3042';
+					for (let i = 0; i < 70; i++) b.fillRect((i * 37) % W, bedrockY + ((i * 13) % BEDROCK) - cy, 2, 1);
+
+					// 풀
+					b.fillStyle = grass;
+					b.fillRect(-2, SKY - cy, W + 4, 2);
+					b.fillStyle = grassDark;
+					for (let x = 1; x < W; x += 12) b.fillRect(x, SKY - 1 - cy, 1, 1);
+
+
+					// 가운데 굴
+					const from = Math.max(SKY, cy);
+					const to = Math.min(shaftBottom, cy + viewH);
+					for (let y = Math.floor(from / T) * T; y < to; y += T) {
+						const L = layerAt(y);
+						if (!L) continue;
+						const [el, er] = edges[y / T];
+						const h = Math.min(T, shaftBottom - y);
+						b.fillStyle = L.caveEdge;
+						b.fillRect(SHAFT_X + el - 1, y - cy, SHAFT_W - el - er + 2, h);
+						b.fillStyle = L.cave;
+						b.fillRect(SHAFT_X + el, y - cy, SHAFT_W - el - er, h);
+					}
+
+					// 지금 칠 흙더미
+					if (stations.length && idx < stations.length && !current().broken && ['ready', 'moving'].includes(state)) drawMound(current(), cy);
+
+					if (bury > 0) {
+						const top = buryTop();
+						for (let y = top; y < SKY; y += T) {
+							const n = (SKY - y) / T - 1;
+							for (let c = 0; c < W / T; c++) {
+								b.fillStyle = newShades[newShade[n * (W / T) + c]];
+								b.fillRect(c * T, y - cy, T, T);
+							}
+						}
+						if (bury >= 1) {
+							b.fillStyle = grass;
+							b.fillRect(-2, top - cy, W + 4, 2);
+							b.fillStyle = grassDark;
+							for (let x = 1; x < W; x += 12) b.fillRect(x, top - 1 - cy, 1, 1);
+						}
+					}
+
+					// 2. 기기 해상도로 키워서 옮긴다
+					ctx.setTransform(1, 0, 0, 1, 0, 0);
+					ctx.imageSmoothingEnabled = false;
+					ctx.drawImage(buf, 0, 0, W, viewH, 0, 0, W * K, viewH * K);
+
+					// 3. 잡동사니는 굴 안쪽으로 나온 부분만, 굴이 파인 만큼만 보인다.
+					// 그림이 정밀해서 고해상도로 부드럽게 줄여 그린다. 그림이 없으면 그리지 않는다.
+					ctx.save();
+					ctx.beginPath();
+					ctx.rect((SHAFT_X + 2 + sx) * K, (SKY - cy) * K, (SHAFT_W - 4) * K, (shaftBottom - SKY) * K);
+					ctx.clip();
+					ctx.imageSmoothingEnabled = true;
+					ctx.imageSmoothingQuality = 'high';
+					for (const j of junk) {
+						const sp = sprites['junk-' + j.name];
+						if (!sp || j.y > shaftBottom || j.y - cy > viewH || j.y + JUNK - cy < 0) continue;
+						const fit = JUNK / Math.max(sp.naturalWidth, sp.naturalHeight);
+						const w = sp.naturalWidth * fit;
+						const h = sp.naturalHeight * fit;
+						// 칸 가운데를 축으로 살짝 기울여 묻힌 느낌을 낸다. 오른쪽 벽 것은 좌우를 뒤집어 굴 쪽을 보게.
+						ctx.save();
+						ctx.translate((j.x + sx + JUNK / 2) * K, (j.y - cy + JUNK / 2) * K);
+						ctx.rotate(j.tilt);
+						if (j.flip) ctx.scale(-1, 1);
+						ctx.drawImage(sp, (-w / 2) * K, (-h / 2) * K, w * K, h * K);
+						ctx.restore();
+					}
+					ctx.restore();
+
+					// 드러난 유물은 고해상도로. 틀 그림마다 픽셀 크기가 달라서 세계 버퍼에 넣으면 뭉개진다.
+					const fillTop = bury > 0 ? (buryTop() - cy) * K : Infinity;
+					for (const a of stations) {
+						if (!a.broken || a.y - cy > viewH || a.y + FRAME_H - cy < 0) continue;
+						drawArtifact(ctx, a, (a.x + sx) * K, (a.y - cy) * K, K);
+					}
+					// 지표의 말은 엔딩에서 땅 위로 솟아올랐다가 새 흙에 덮인다. 땅 밑으로는 그리지 않는다.
+					const ground = Math.min(fillTop, (SKY - cy) * K);
+					surfaceArts.forEach((a, i) => {
+						const p = riseOf(i);
+						if (p <= 0) return;
+						const y = a.y + (SKY - a.y) * (1 - p);
+						drawArtifact(ctx, a, (a.x + sx) * K, (y - cy) * K, K, { clipBottom: ground });
+					});
+
+					// 4. 튀는 흙과 충격은 유물 위에
+					const dot = (x, y, color) => {
+						ctx.fillStyle = color;
+						ctx.fillRect((Math.round(x) + sx) * K, (Math.round(y) - cy) * K, K, K);
+					};
+					for (const m of impacts) {
+						const r = Math.round((0.2 - m.t) * 30) + 2;
+						for (const [dx, dy] of [
+							[r, 0],
+							[-r, 0],
+							[0, r],
+							[0, -r],
+						])
+							dot(m.x + dx, m.y + dy, '#ffffff');
+					}
+					for (const p of particles) dot(p.x, p.y, p.color);
+
+					drawHint(cy);
+					drawPickaxe(cy);
+					drawPopups(cy);
+				}
+
+				const layerAt = (y) => layers.find((L) => y >= L.top && y < L.bottom);
+
+				// 흙더미의 윤곽. 위는 둥글게, 아래는 살짝만 깎는다.
+				function moundInset(ry) {
+					const top = 12;
+					const bottom = 3;
+					if (ry < top) return Math.round(top - Math.sqrt(top * top - (top - ry - 0.5) ** 2));
+					const by = MOUND.h - 1 - ry;
+					if (by < bottom) return Math.round(bottom - Math.sqrt(bottom * bottom - (bottom - by - 0.5) ** 2));
+					return 0;
+				}
+
+				// 흙더미 안의 자갈과 흙 무늬. 흙더미마다 한 번 정해 둔다.
+				function moundSpeckles() {
+					const out = [];
+					while (out.length < 34) {
+						const ry = randInt(3, MOUND.h - 5);
+						const rx = randInt(moundInset(ry) + 3, MOUND.w - moundInset(ry) - 5);
+						out.push([rx, ry, Math.random() < 0.25 ? 1 : 0]);
+					}
+					return out;
+				}
+
+				function drawMound(a, cy) {
+					const L = a.layer;
+					// 아직 안 친 흙더미는 살짝 들썩여서 칠 수 있다는 걸 알린다
+					const bob = a.hits === 0 && state === 'ready' && Math.sin(clock * 5) > 0.6 ? -1 : 0;
+					const x = a.x + MOUND.x;
+					const y = a.y + MOUND.y - cy + bob;
+					const w = MOUND.w;
+					const h = MOUND.h;
+
+					// 깊은 층에서도 보이게, 둘레 흙보다 밝게 다져진 흙
+					const fill = a.rare ? mix(L.soil, ACCENT, 0.6) : mix(L.soil, PAPER, 0.28);
+					const light = mix(fill, '#ffffff', 0.3);
+					const dark = mix(fill, INK, 0.22);
+					const edge = mix(L.soil, INK, 0.7);
+
+					for (let ry = 0; ry < h; ry++) {
+						const i = moundInset(ry);
+						b.fillStyle = edge;
+						b.fillRect(x + i, y + ry, w - 2 * i, 1);
+					}
+					for (let ry = 1; ry < h - 1; ry++) {
+						const i = Math.max(moundInset(ry - 1), moundInset(ry), moundInset(ry + 1)) + 1;
+						b.fillStyle = ry < 4 ? light : ry > h - 6 ? dark : fill;
+						b.fillRect(x + i, y + ry, w - 2 * i, 1);
+					}
+
+					// 자갈과 흙 무늬
+					for (const [rx, ry, pebble] of a.speckles) {
+						b.fillStyle = dark;
+						if (pebble) {
+							b.fillRect(x + rx, y + ry, 3, 2);
+							b.fillStyle = light;
+							b.fillRect(x + rx, y + ry, 1, 1);
+						} else b.fillRect(x + rx, y + ry, 2, 1);
+					}
+
+					// 희귀 흙더미는 반짝인다
+					if (a.rare) {
+						const seed = Math.floor(clock * 6);
+						b.fillStyle = '#ffffff';
+						for (let i = 0; i < 6; i++) {
+							const ry = 6 + ((seed * 7 + i * 23) % (h - 12));
+							const span = w - 2 * moundInset(ry) - 10;
+							const px = x + moundInset(ry) + 5 + ((seed * 13 + i * 37) % span);
+							const py = y + ry;
+							b.fillRect(px, py, 1, 1);
+							if (i % 2 === 0) {
+								b.fillRect(px - 1, py, 3, 1);
+								b.fillRect(px, py - 1, 1, 3);
+							}
+						}
+					}
+
+					// 친 만큼 금이 간다
+					b.fillStyle = INK;
+					for (let n = 0; n < a.hits && n < a.cracks.length; n++) {
+						const px = a.cracks[n];
+						for (let i = 0; i < px.length; i += 2) {
+							const ry = px[i + 1];
+							if (px[i] <= moundInset(ry) || px[i] >= w - 1 - moundInset(ry)) continue;
+							b.fillRect(x + px[i], y + ry, 1, 1);
+						}
+					}
+				}
+
+				// 처음 한 번 칠 때까지만 "탭해서 파기"를 깜빡인다
+				function drawHint(cy) {
+					if (tapped || state !== 'ready' || !D.tapHint) return;
+					if (Math.floor(clock * 2) % 2) return;
+					const a = current();
+					const y = a.y + MOUND.y + MOUND.h + 9 - cy;
+					ctx.font = `bold ${crisp(8 * K)}px ${fontFamily}`;
+					ctx.textAlign = 'center';
+					ctx.textBaseline = 'middle';
+					const w = ctx.measureText(D.tapHint).width + 8 * K;
+					ctx.fillStyle = INK;
+					ctx.fillRect((W / 2) * K - w / 2, (y - 6) * K, w, 12 * K);
+					ctx.fillStyle = ACCENT;
+					ctx.fillText(D.tapHint, (W / 2) * K, y * K);
+				}
+
+				// 곡괭이 그림이 있으면 맞은 자리에서 한 번 휘두른다
+				function drawPickaxe(cy) {
+					const sp = sprites['tool-pickaxe'];
+					if (!sp) return;
+					// 돌려 그리니까 부드럽게
+					ctx.imageSmoothingEnabled = true;
+					ctx.imageSmoothingQuality = 'high';
+					const fit = 24 / Math.max(sp.naturalWidth, sp.naturalHeight);
+					for (const m of impacts) {
+						const swing = (m.t / 0.2) * 0.9;
+						ctx.save();
+						ctx.translate(m.x * K, (m.y - cy) * K);
+						ctx.rotate(-swing);
+						ctx.drawImage(sp, 0, 0, sp.naturalWidth * fit * K, sp.naturalHeight * fit * K);
+						ctx.restore();
+					}
+				}
+
+				function drawPopups(cy) {
+					for (const p of popups) {
+						const scale = p.t > 0.9 ? 1 + (p.t - 0.9) * 2 : 1;
+						ctx.globalAlpha = Math.min(1, p.t * 3);
+						ctx.font = `bold ${crisp(14 * K * scale)}px ${fontFamily}`;
+						ctx.textAlign = 'center';
+						ctx.textBaseline = 'middle';
+						ctx.lineWidth = 3 * K;
+						ctx.strokeStyle = INK;
+						ctx.strokeText(p.text, p.x * K, (p.y - cy) * K);
+						ctx.fillStyle = ACCENT;
+						ctx.fillText(p.text, p.x * K, (p.y - cy) * K);
+						ctx.globalAlpha = 1;
+					}
+				}
+
+				// ── 화면 위 판들 ────────────────────────────────────
+				const gaugeEl = $('#gauge');
+				const gaugeBar = $('#gauge-bar');
+				const gaugeMark = $('#gauge-mark');
+				const soundBtn = $('#sound-btn');
+				let modal = null;
+
+				// 오른쪽 깊이 막대. 층마다 색 칸 하나, 그 안에 유물마다 점 하나.
+				function buildGauge() {
+					const cap = (color) => {
+						const el = document.createElement('div');
+						el.className = 'gauge-cap';
+						el.style.background = color;
+						return el;
+					};
+					gaugeBar.replaceChildren(cap(grass));
+					for (const L of layers) {
+						const seg = document.createElement('div');
+						seg.className = 'gauge-seg';
+						seg.style.background = L.soil;
+						for (const a of stations.filter((s) => s.layer === L)) {
+							a.dot = document.createElement('i');
+							seg.append(a.dot);
+						}
+						gaugeBar.append(seg);
+					}
+					gaugeBar.append(cap(ROCK));
+				}
+
+				function updateHud() {
+					for (const a of stations) {
+						a.dot.classList.toggle('done', Boolean(a.answer));
+						// 희귀 유물은 찾고 나서야 금빛으로
+						a.dot.classList.toggle('rare', a.rare && Boolean(a.answer));
+					}
+					const a = stations[Math.min(idx, stations.length - 1)];
+					if (!a || gaugeEl.hidden) return;
+					gaugeMark.textContent = a.layer.name;
+					const g = gaugeEl.getBoundingClientRect();
+					const d = a.dot.getBoundingClientRect();
+					gaugeMark.style.top = `${d.top + d.height / 2 - g.top}px`;
+					const done = stations.filter((s) => s.answer).length;
+					gaugeEl.setAttribute('aria-label', `${a.layer.name} 지층, ${stations.length}개 중 ${done}개 발굴`);
+				}
+
+				// 판이 막 뜬 순간의 연타가 버튼을 눌러 버리지 않게, 잠깐은 입력을 받지 않는다
+				const OPEN_GUARD = 300;
+				let openedAt = -Infinity;
+				const justOpened = () => performance.now() - openedAt < OPEN_GUARD;
+				document.addEventListener(
+					'click',
+					(e) => {
+						if (justOpened() && e.target.closest('.layer')) {
+							e.preventDefault();
+							e.stopPropagation();
+						}
+					},
+					true,
+				);
+
+				// 판이 닫히면 포커스를 게임 화면으로 돌려 키보드로 계속 팔 수 있게
+				const focusGame = () => canvas.focus({ preventScroll: true });
+
+				function openModal(id) {
+					modal = id;
+					openedAt = performance.now();
+					const el = $('#' + id);
+					el.hidden = false;
+					// 같은 판을 다시 쓰니까 내용은 늘 맨 위부터
+					const body = el.querySelector('.sheet-body');
+					if (body) body.scrollTop = 0;
+					const first = el.querySelector('button');
+					if (first) first.focus({ preventScroll: true });
+				}
+
+				function closeModal() {
+					if (!modal) return;
+					$('#' + modal).hidden = true;
+					modal = null;
+					focusGame();
+				}
+
+				// 유물 카드
+				const answersEl = $('#answers');
+				D.answers.forEach((ans) => {
+					const btn = document.createElement('button');
+					btn.textContent = ans.label;
+					btn.addEventListener('click', () => answer(ans));
+					answersEl.append(btn);
+				});
+
+				function openCard(a) {
+					const art = $('#card-art');
+					const g = art.getContext('2d');
+					const s = Math.min(art.width / FRAME_W, art.height / FRAME_H) * 0.9;
+					g.clearRect(0, 0, art.width, art.height);
+					drawArtifact(g, a, (art.width - FRAME_W * s) / 2, (art.height - FRAME_H * s) / 2, s, { flash: false });
+
+					$('#card').classList.toggle('rare', a.rare);
+					$('#card-badge').hidden = !a.rare;
+					$('#card-meta').textContent = `출토: ${a.layer.name} 지층 · 추정 ${a.data.year}년`;
+					$('#card-word').textContent = a.data.word;
+					$('#card-meaning').textContent = a.data.meaning;
+					$('#card-example').textContent = a.data.example;
+					$('#card-extinction').textContent = a.data.extinction;
+					openModal('card');
+				}
+
+				// 결과
+				function computeResult() {
+					const rows = layers.map((L) => {
+						const mine = stations.filter((a) => a.layer === L && a.answer);
+						const sum = mine.reduce((s, a) => s + a.answer.score, 0);
+						return { L, ratio: mine.length ? sum / (mine.length * maxScore) : null, used: mine.some((a) => a.answer === topAnswer) };
+					});
+					const known = rows.filter((r) => r.ratio !== null);
+					const answered = stations.filter((a) => a.answer);
+					const overall = answered.length ? answered.reduce((s, a) => s + a.answer.score, 0) / (answered.length * maxScore) : 0;
+					const byRule = (id) => D.results.find((r) => r.rule === id);
+
+					let result = null;
+					if (known.length >= 3 && known.every((r) => r.ratio >= 0.75)) result = byRule('all-high');
+					else if (overall <= 0.15) result = byRule('all-low');
+					if (!result && known.length) {
+						// 가장 많이 아는 층. 같으면 더 깊은 층.
+						const best = known.reduce((p, q) => (q.ratio >= p.ratio ? q : p));
+						result = D.results.find((r) => r.layer === best.L.id) || { name: `${best.L.name} 사람`, line: '' };
+					}
+					if (!result) result = byRule('all-low') || { name: '', line: '' };
+
+					const deepest = rows.filter((r) => r.used).pop();
+					return { result, rows, deepest };
+				}
+
+				function openResult() {
+					state = 'result';
+					const { result, rows, deepest } = computeResult();
+					$('#result-name').textContent = result.name;
+					$('#result-line').textContent = result.line;
+
+					const strata = $('#result-strata');
+					strata.replaceChildren();
+					for (const r of rows) {
+						const row = document.createElement('div');
+						row.className = 'strata-row';
+						row.style.background = r.L.cave;
+						const name = document.createElement('span');
+						name.textContent = r.L.name;
+						const barEl = document.createElement('div');
+						barEl.className = 'strata-bar';
+						const fill = document.createElement('span');
+						fill.style.width = `${Math.round((r.ratio || 0) * 100)}%`;
+						fill.style.background = r.L.soil;
+						barEl.append(fill);
+						const em = document.createElement('em');
+						em.textContent = r.ratio === null ? '—' : `${Math.round(r.ratio * 100)}%`;
+						row.append(name, barEl, em);
+						strata.append(row);
+					}
+					$('#result-deepest').textContent = deepest ? `써 본 말이 있는 가장 오래된 지층: ${deepest.L.name}` : '써 본 말이 있는 지층은 아직 없어요.';
+
+					const list = $('#result-found');
+					list.replaceChildren();
+					for (const a of stations) {
+						const li = document.createElement('li');
+						if (a.rare) li.className = 'rare';
+						li.textContent = (a.rare ? '★ ' : '') + a.data.word;
+						const small = document.createElement('small');
+						// 목록이 이미 깊이 순서라 지층 이름은 빼고 답만
+						small.textContent = a.answer ? a.answer.label : '';
+						li.append(small);
+						list.append(li);
+					}
+					openModal('result');
+				}
+
+				function startEnding() {
+					closeModal();
+					state = 'ending';
+					gaugeEl.hidden = true;
+				}
+
+				function showEnding() {
+					$('#ending-sub').textContent = (D.endingSub || '').replace('{year}', new Date().getFullYear());
+					$('#ending').hidden = false;
+					openedAt = performance.now();
+					$('#again').focus({ preventScroll: true });
+					chrome('show');
+				}
+
+				function start() {
+					Sound.init();
+					$('#title').hidden = true;
+					$('#ending').hidden = true;
+					gaugeEl.hidden = false;
+					soundBtn.hidden = false;
+					if (!stations.length) return;
+					state = 'ready';
+					updateHud();
+					chrome('dim');
+					focusGame();
+				}
+
+				// ── 입력 ──────────────────────────────────────────
+				// 화면 어디를 눌러도 지금 흙더미를 친다
+				canvas.addEventListener('pointerdown', (e) => {
+					const rect = canvas.getBoundingClientRect();
+					tap((e.clientX - rect.left) / k, (e.clientY - rect.top) / k);
+				});
+
+				window.addEventListener('keydown', (e) => {
+					if (modal === 'card') {
+						const n = Number(e.key);
+						if (n >= 1 && n <= D.answers.length) answer(D.answers[n - 1]);
+						return;
+					}
+					if (modal) return;
+					if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') {
+						e.preventDefault();
+						if (!e.repeat) tap(null, null);
+					}
+				});
+
+				// 타이틀은 어디를 눌러도 시작한다. 버튼은 키보드로 시작할 때 쓴다.
+				$('#title').addEventListener('click', start);
+				soundBtn.addEventListener('click', () => {
+					Sound.on = !Sound.on;
+					soundBtn.setAttribute('aria-pressed', String(!Sound.on));
+					soundBtn.setAttribute('aria-label', Sound.on ? '소리 끄기' : '소리 켜기');
+					soundBtn.textContent = Sound.on ? '♪' : '×';
+					soundBtn.blur();
+				});
+				$('#surface-btn').addEventListener('click', startEnding);
+				$('#again').addEventListener('click', () => {
+					build();
+					start();
+				});
+
+				// ── 크기 ──────────────────────────────────────────
+				let lastVW = 0;
+				let lastVH = 0;
+				function resize() {
+					const vw = window.innerWidth;
+					const vh = window.innerHeight;
+					lastVW = vw;
+					lastVH = vh;
+					k = Math.max(1, Math.floor(Math.min(vw / W, vh / 250)));
+					K = k * (window.devicePixelRatio || 1);
+					// 창이 아직 크기를 갖기 전(숨은 iframe 등)에도 0이 되지 않게
+					viewH = Math.max(1, Math.ceil(vh / k));
+					col.style.width = `${W * k}px`;
+					col.style.setProperty('--sky', `${SKY * k}px`);
+					canvas.width = Math.round(W * K);
+					canvas.height = Math.round(viewH * K);
+					canvas.style.width = `${W * k}px`;
+					canvas.style.height = `${viewH * k}px`;
+					buf.width = W;
+					buf.height = viewH;
+					if (state === 'ready' || state === 'moving') camTarget = camFor(current());
+					if (stations) updateHud();
+				}
+				window.addEventListener('resize', resize);
+
+				// ── 시작 ──────────────────────────────────────────
+				build();
+				resize();
+				let prev = performance.now();
+				function frame(now) {
+					const dt = Math.min(0.05, (now - prev) / 1000);
+					prev = now;
+					// 창 크기가 바뀌었는데 resize 이벤트를 놓친 경우까지 챙긴다
+					if (window.innerWidth !== lastVW || window.innerHeight !== lastVH) resize();
+					update(dt);
+					render();
+					requestAnimationFrame(frame);
+				}
+				requestAnimationFrame(frame);
+			})();
+		</script>
+	</body>
+</html>
