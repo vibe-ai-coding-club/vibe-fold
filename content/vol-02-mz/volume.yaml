@@ -6,12 +6,17 @@ title: MZ
 # 공개된 볼륨이 방을 마주보고, 준비 중인 것들은 그 뒤에 섭니다.
 shelf: 1
 summary: |
-  줄임말이나 밈처럼 잠깐 쓰이다 사라지는 말을 모아 볼 거예요. 십 년 뒤에는 아무도 기억하지 못할 표현을 지금 붙잡아 두려고요.
+  줄임말이나 밈처럼 잠깐 쓰이다 사라지는 말을 모았어요. 십 년 뒤에는 아무도 기억하지 못할 표현을 지금 붙잡아 두었어요.
+
+  MZ는 말에만 붙는 이름이 아니라 사람에게도 붙는 이름이에요. 그 이름이 어떻게 붙고 무엇을 가리키는지, 작품마다 직접 걷어내고 파 보고 뽑아 보세요.
 date: 2026
 status: published
 featured: false
 cover: ch-mz-gatji-anhneyo
+# 실린 차례입니다. 번호와 주소가 이 순서에서 나오므로, 새로 실리는 작품은
+# 뒤에 붙입니다 — 사이에 끼우면 이미 나간 작품의 주소가 밀려납니다.
 chapters:
   - ch-mz-gatji-anhneyo
   - ch-mz-chatgi
   - ch-internet-jicheung
+  - ch-mz-malsseum
