@@ -8,7 +8,31 @@
     cam: '렌즈가 달린 카메라.',
     soju: '녹색 유리병.',
     newspaper: '접힌 종이 신문.',
-    tie: '매듭 있는 넥타이.'
+    tie: '매듭 있는 넥타이.',
+    gloves: '빨간 고무장갑.'
+  };
+
+  const PEOPLE = {
+    grandpa: {
+      name: '할아버지',
+      line: '아침마다 종이 신문을 끝까지 정독한다.',
+      why: '요즘 MZ는 뉴스를 숏폼과 포털로 본다.'
+    },
+    bujang: {
+      name: '김 부장님',
+      line: '월요일 아침이면 넥타이부터 고쳐 맨다.',
+      why: '요즘 MZ 직장인은 넥타이 맬 일이 거의 없다.'
+    },
+    hoesik: {
+      name: '회식 아저씨',
+      line: '회식은 2차까지가 기본이라고 믿는다.',
+      why: '요즘 MZ는 술을 잘 안 마신다.'
+    },
+    ajumma: {
+      name: '동네 아줌마',
+      line: '김장철이면 온 동네 김치를 같이 담근다.',
+      why: '요즘 MZ는 김장 대신 김치를 사 먹는다.'
+    }
   };
 
   const FACES = [
@@ -85,9 +109,20 @@
     return `${f.name} — ${f.line}\n${itemLabel} — ${f.why}`;
   }
 
+  function personName(personId) {
+    return PEOPLE[personId] ? PEOPLE[personId].name : '';
+  }
+
+  function personLine(personId) {
+    const p = PEOPLE[personId];
+    const itemLabel = window.MZItems.label(window.MZItems.itemForPerson(personId));
+    return `${p.name} — ${p.line}\n${itemLabel} — ${p.why}`;
+  }
+
   function describeCell(cell) {
     if (cell.open) {
       if (cell.mine) return mzLine(cell.face);
+      if (cell.person) return personLine(cell.person);
       if (cell.wrong) return '표시 — 여기는 MZ가 아니었습니다.';
       if (cell.adj > 0) return `숫자 ${cell.adj} — 이 칸 주변에 MZ가 ${cell.adj}명 있습니다.`;
       return '빈 칸 — 주변에 MZ가 없습니다.';
@@ -97,10 +132,13 @@
     return '-';
   }
 
-  /** @returns {{ kind: 'item', item: string } | { kind: 'face', face: number, item: string } | null} */
+  /** @returns {{ kind: 'item', item: string } | { kind: 'face', face: number, item: string } | { kind: 'person', person: string, item: string } | null} */
   function visualForCell(cell) {
     if (cell.open && cell.mine) {
       return { kind: 'face', face: cell.face, item: window.MZItems.itemForFace(cell.face) };
+    }
+    if (cell.open && cell.person) {
+      return { kind: 'person', person: cell.person, item: window.MZItems.itemForPerson(cell.person) };
     }
     if (!cell.open && cell.drop) return { kind: 'item', item: cell.drop.item };
     return null;
@@ -111,6 +149,8 @@
     itemLine,
     faceLine,
     mzLine,
+    personName,
+    personLine,
     describeCell,
     visualForCell
   };

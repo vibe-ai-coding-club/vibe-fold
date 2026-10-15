@@ -134,7 +134,8 @@
       face: 0,
       blown: false,
       wrong: false,
-      drop: null
+      drop: null,
+      person: null
     };
   }
 
@@ -149,6 +150,7 @@
       c.mine = false;
       c.adj = 0;
       c.drop = null;
+      c.person = null;
     });
 
     const pool = [];
@@ -208,27 +210,34 @@
     }
   }
 
-  function placeDecoyItems() {
-    const empty = [];
+  /** Non-MZ people hide on safe cells and drop their own item on a free neighbor. */
+  function placeNonMzPeople() {
+    const spots = [];
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        const i = idx(r, c);
-        if (cells[i].mine || cells[i].drop) continue;
-        empty.push(i);
+        if (!cells[idx(r, c)].mine) spots.push([r, c]);
       }
     }
-    shuffle(empty);
-    const count = 5 + Math.floor(Math.random() * 4);
-    for (let n = 0; n < count && n < empty.length; n++) {
-      const i = empty[n];
-      cells[i].drop = { item: window.MZItems.randomDecoyItem(), decoy: true };
+    shuffle(spots);
+
+    const target = 5 + Math.floor(Math.random() * 4);
+    let placed = 0;
+    for (const [r, c] of spots) {
+      if (placed >= target) break;
+      const free = neighbors(r, c).filter(([nr, nc]) => !cells[idx(nr, nc)].drop);
+      if (!free.length) continue;
+      const person = window.MZItems.randomPerson();
+      const [nr, nc] = free[Math.floor(Math.random() * free.length)];
+      cells[idx(r, c)].person = person;
+      cells[idx(nr, nc)].drop = { item: window.MZItems.itemForPerson(person), ownerPerson: person };
+      placed += 1;
     }
   }
 
   function buildBoard(safeR, safeC) {
     placeMines(safeR, safeC);
     dropMzItems();
-    placeDecoyItems();
+    placeNonMzPeople();
   }
 
   function reset() {
@@ -270,6 +279,8 @@
       if (cell.mine) {
         cell.open = true;
         if (i === hitIndex) cell.blown = true;
+      } else if (cell.person && !cell.flag) {
+        cell.open = true;
       } else if (cell.flag) {
         cell.wrong = true;
         cell.open = true;
@@ -371,8 +382,13 @@
         detailIcon2El.removeAttribute('src');
       }
     } else {
-      detailIconEl.src = window.MZSprites.getFaceUrl(visual.face, 32);
-      detailIconEl.alt = window.MZLore.faceLine(visual.face).split(' — ')[0];
+      if (visual.kind === 'person') {
+        detailIconEl.src = window.MZSprites.getPersonUrl(visual.person, 32);
+        detailIconEl.alt = window.MZLore.personName(visual.person);
+      } else {
+        detailIconEl.src = window.MZSprites.getFaceUrl(visual.face, 32);
+        detailIconEl.alt = window.MZLore.faceLine(visual.face).split(' — ')[0];
+      }
       if (detailIcon2El && visual.item) {
         detailIcon2El.hidden = false;
         detailIcon2El.src = window.MZItems.getItemUrl(visual.item, 32);
@@ -430,6 +446,20 @@
           } else if (cell.wrong) {
             btn.classList.add('wrong');
             btn.textContent = '×';
+          } else if (cell.person) {
+            btn.classList.add('person');
+            const img = document.createElement('img');
+            img.src = window.MZSprites.getPersonUrl(cell.person, 32);
+            img.alt = '';
+            img.draggable = false;
+            img.className = 'mz-face';
+            btn.appendChild(img);
+            if (cell.adj > 0) {
+              const badge = document.createElement('span');
+              badge.className = `cell-badge n${cell.adj}`;
+              badge.textContent = String(cell.adj);
+              btn.appendChild(badge);
+            }
           } else if (cell.adj > 0) {
             btn.classList.add(`n${cell.adj}`);
             btn.textContent = String(cell.adj);
@@ -452,13 +482,14 @@
     const pos = `${r + 1}행 ${c + 1}열`;
     if (cell.open) {
       if (cell.mine) return `MZ, ${pos}`;
+      if (cell.person) return `${window.MZLore.personName(cell.person)}, 주변 MZ ${cell.adj}, ${pos}`;
       if (cell.adj) return `주변 MZ ${cell.adj}, ${pos}`;
       return `빈칸, ${pos}`;
     }
     if (cell.flag) return `MZ 표시, ${pos}`;
     if (cell.drop) {
       const name = window.MZItems.label(cell.drop.item);
-      return `${name} 소지품, 주인은 이웃 칸, ${pos}`;
+      return `${name}, ${pos}`;
     }
     return `닫힌 칸, ${pos}`;
   }

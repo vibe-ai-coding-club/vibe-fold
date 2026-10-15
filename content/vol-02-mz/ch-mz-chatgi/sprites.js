@@ -183,11 +183,126 @@
     return cache[key];
   }
 
+  // Non-MZ people — . empty · 1 outline · others from palette
+  const PEOPLE = {
+    grandpa: {
+      palette: { 3: '#f1c6a0', 4: '#dee2e6', 5: '#1a1a1a', 6: '#e9ecef', 8: '#c99a7a' },
+      rows: [
+        '................',
+        '.....111111.....',
+        '....13333331....',
+        '...1388888831...',
+        '..166333333661..',
+        '..161113311161..',
+        '..161513315161..',
+        '..161113311161..',
+        '..133333333331..',
+        '..134444444431..',
+        '..133333333331..',
+        '...1333333331...',
+        '....13333331....',
+        '.....111111.....',
+        '................',
+        '................'
+      ]
+    },
+    bujang: {
+      palette: { 2: '#343a40', 3: '#f3c9a3', 5: '#1a1a1a', 6: '#ffffff', 7: '#c1121f' },
+      rows: [
+        '................',
+        '....11111111....',
+        '...1222222221...',
+        '..122222222221..',
+        '..122233333321..',
+        '..123333333321..',
+        '..131113311131..',
+        '..133533335331..',
+        '..133333333331..',
+        '..133311113331..',
+        '..133333333331..',
+        '...1333333331...',
+        '....13333331....',
+        '..166617716661..',
+        '..166617716661..',
+        '..111111111111..'
+      ]
+    },
+    hoesik: {
+      palette: { 2: '#495057', 3: '#f4a582', 4: '#e5383b', 5: '#6a040f' },
+      rows: [
+        '................',
+        '....11111111....',
+        '...1333223331...',
+        '..132232232231..',
+        '..122333333221..',
+        '..123333333321..',
+        '..133333333331..',
+        '..131133331131..',
+        '..144333333441..',
+        '..133315513331..',
+        '..133333333331..',
+        '...1333333331...',
+        '....13333331....',
+        '.....111111.....',
+        '................',
+        '................'
+      ]
+    },
+    ajumma: {
+      palette: { 2: '#3b2a20', 3: '#ffd2b0', 4: '#d62839', 5: '#1a1a1a', 6: '#6b4f3a' },
+      rows: [
+        '................',
+        '....11111111....',
+        '..112626262611..',
+        '.12626262626261.',
+        '.16262626262621.',
+        '.12626262626261.',
+        '.16233333333261.',
+        '.12333333333321.',
+        '.16335333353361.',
+        '.12333333333321.',
+        '.16333444433361.',
+        '..133333333331..',
+        '...1333333331...',
+        '....11111111....',
+        '................',
+        '................'
+      ]
+    }
+  };
+
+  const personCache = {};
+  /** Rendered at an integer multiple of SIZE; CSS scales it with pixelated rendering. */
+  function getPersonUrl(id, displaySize = 32) {
+    const key = `${id}-${displaySize}`;
+    if (personCache[key]) return personCache[key];
+    const def = PEOPLE[id];
+    if (!def) return '';
+    const scale = Math.max(1, Math.round(displaySize / SIZE));
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE * scale;
+    canvas.height = SIZE * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    def.rows.forEach((line, row) => {
+      for (let col = 0; col < SIZE; col++) {
+        const ch = line[col];
+        const c = ch === '1' ? '#2a1a12' : def.palette[ch];
+        if (!c) continue;
+        ctx.fillStyle = c;
+        ctx.fillRect(col * scale, row * scale, scale, scale);
+      }
+    });
+    personCache[key] = canvas.toDataURL('image/png');
+    return personCache[key];
+  }
+
   window.MZSprites = {
     SIZE,
     FACE_COUNT: FACES.length,
     SHAPE_COUNT: SHAPES.length,
     getFaceUrl,
+    getPersonUrl,
     drawFace
   };
 })();

@@ -1,7 +1,5 @@
 /* Pixel MZ clutter — clues dropped on neighbor cells, not on the MZ tile itself. */
 (() => {
-  /** Bump when pixel art changes (cache-bust for data URLs + ?v= on script tag). */
-  const SPRITE_REVISION = 7;
   const SIZE = 16;
   const O = '#2a1a12';
 
@@ -205,6 +203,28 @@
     }
   };
 
+  SHAPES.gloves = {
+    palette: { 2: '#e63946', 3: '#ffb3c1' },
+    rows: [
+      '................',
+      '.....11.11.11...',
+      '....1221221221..',
+      '....1221221221..',
+      '....1221221221..',
+      '..111222222221..',
+      '.1221222222221..',
+      '..122222222221..',
+      '....1222222221..',
+      '....1222222221..',
+      '....1333333331..',
+      '....1333333331..',
+      '....1111111111..',
+      '................',
+      '................',
+      '................'
+    ]
+  };
+
   const LABELS = {
     shoe: '운동화',
     book: '책',
@@ -214,11 +234,18 @@
     cam: '카메라',
     soju: '술',
     newspaper: '신문',
-    tie: '넥타이'
+    tie: '넥타이',
+    gloves: '고무장갑'
   };
 
-  /** Not dropped by MZ — decoys on random closed cells. */
-  const DECOY_ITEMS = ['soju', 'newspaper', 'tie'];
+  /** Non-MZ people (safe cells) and the item each drops on a neighbor cell. */
+  const PERSON_ITEM = {
+    grandpa: 'newspaper',
+    bujang: 'tie',
+    hoesik: 'soju',
+    ajumma: 'gloves'
+  };
+  const PEOPLE_IDS = Object.keys(PERSON_ITEM);
 
   /** One item type per MZ face index (10 mines). */
   const ITEM_FOR_FACE = ['shoe', 'book', 'malang', 'tumbler', 'buds', 'cam', 'shoe', 'book', 'malang', 'tumbler'];
@@ -246,7 +273,7 @@
   const cache = {};
   /** Rendered at an integer multiple of SIZE; CSS scales it with pixelated rendering. */
   function getItemUrl(id, displaySize = 24) {
-    const key = `${SPRITE_REVISION}-${id}-${displaySize}`;
+    const key = `${id}-${displaySize}`;
     if (cache[key]) return cache[key];
     const scale = Math.max(1, Math.round(displaySize / SIZE));
     const canvas = document.createElement('canvas');
@@ -263,8 +290,12 @@
     return ITEM_FOR_FACE[faceIndex % ITEM_FOR_FACE.length];
   }
 
-  function randomDecoyItem() {
-    return DECOY_ITEMS[Math.floor(Math.random() * DECOY_ITEMS.length)];
+  function randomPerson() {
+    return PEOPLE_IDS[Math.floor(Math.random() * PEOPLE_IDS.length)];
+  }
+
+  function itemForPerson(personId) {
+    return PERSON_ITEM[personId];
   }
 
   function label(id) {
@@ -273,10 +304,10 @@
 
   window.MZItems = {
     ITEM_FOR_FACE,
-    DECOY_ITEMS,
     getItemUrl,
     itemForFace,
-    randomDecoyItem,
+    itemForPerson,
+    randomPerson,
     label
   };
 })();
