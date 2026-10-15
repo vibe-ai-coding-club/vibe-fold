@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <title>MZ 같지 않네요</title>
+  <link rel="stylesheet" href="assets/font.css">
+  <link rel="stylesheet" href="experience.css">
+  <script src="assets/gsap.min.js" defer></script>
+  <script src="motion-art.js" defer></script>
+  <script src="story.js" defer></script>
+  <script src="experience.js" defer></script>
+</head>
+<body>
+<main id="scene" data-phase="intro" data-index="-1" data-sequence="" data-beat="-1" aria-label="MZ 같지 않네요: 한 저녁의 이야기">
+  <canvas id="art" aria-hidden="true"></canvas>
+  <audio id="music" src="assets/audio/music-bed.mp3" preload="auto" loop></audio>
+  <p id="art-description" class="sr-only"></p>
+  <div class="scene-mark" aria-hidden="true"><span id="scene-number">시작</span><span id="scene-name">금요일 저녁</span></div>
+  <div class="controls">
+    <button id="pause" class="quiet-button" aria-pressed="false" hidden>잠시 멈춤 Ⅱ</button>
+    <button id="sound" class="quiet-button" aria-pressed="false" aria-label="소리 켜기">소리 켜기 ＋</button>
+  </div>
+  <section id="narrative" aria-live="polite" aria-atomic="true">
+    <p class="story-kicker"></p>
+    <p class="story-copy"></p>
+    <div class="beat-progress" aria-hidden="true"><span></span></div>
+  </section>
+  <p id="replacement-announcement" class="sr-only" role="status" aria-live="polite"></p>
+  <canvas id="paper" aria-hidden="true"></canvas>
+  <button id="label" disabled aria-describedby="instruction"><span id="speaker"></span><span class="judgment-copy"></span></button>
+  <footer>
+    <p id="instruction" role="status"></p>
+    <div class="scene-actions">
+      <button id="repeat" class="quiet-button" hidden>이 만남 다시</button>
+      <button id="replay" class="quiet-button" hidden>이어서 →</button>
+    </div>
+  </footer>
+  <div id="veil" aria-hidden="true"></div>
+  <section id="intro" class="opening" aria-labelledby="title">
+    <p class="eyebrow">한 저녁 · 세 번의 시선</p>
+    <h1 id="title">MZ 같지<br>않네요</h1>
+    <button id="begin" class="primary-button">이야기 시작 <span aria-hidden="true">→</span></button>
+  </section>
+  <section id="ending" class="opening" hidden aria-labelledby="ending-title">
+    <p class="eyebrow">금요일 · 모임방 앞</p>
+    <h2 id="ending-title">“조심히 가요,<br><em>지윤 씨.”</em></h2>
+    <button id="again" class="primary-button">다시 보기 <span aria-hidden="true">↺</span></button>
+  </section>
+  <noscript><section class="opening"><h2>조심히 가요,<br>지윤 씨.</h2><p>이야기를 시작하려면 JavaScript를 켜 주세요.</p></section></noscript>
+</main>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-labelledby="title desc">
+  <title id="title">MZ 같지 않네요</title>
+  <desc id="desc">저녁 모임의 세 사람 앞에 산호색 종이 한 장이 놓인 장면</desc>
+  <rect width="1200" height="750" fill="#f7f3e9"/>
+  <path d="M740 0H1200L630 750H160Z" fill="#eee8d9" opacity=".56"/>
+  <path d="M140 578V108h212v470M930 576V108h145v470" fill="none" stroke="#c8bea9" stroke-width="11"/>
+  <path d="M94 578h1000" stroke="#c8bea9" stroke-width="7"/>
+  <ellipse cx="600" cy="582" rx="434" ry="24" fill="#d7cbb5" opacity=".4"/>
+  <g fill="#e0baa0">
+    <circle cx="416" cy="248" r="57"/>
+    <circle cx="650" cy="244" r="57"/>
+    <circle cx="865" cy="263" r="51"/>
+  </g>
+  <path d="M354 232q17-89 100-53l23 48-34-20-78 29Z" fill="#3b3c35"/>
+  <path d="M593 229q6-91 100-54l25 46-36-18-84 30Z" fill="#3b3c35"/>
+  <path d="M816 244q20-76 87-35l14 39-44-19-46 30Z" fill="#3b3c35"/>
+  <path d="M349 318q63-25 130 7l21 231H326Z" fill="#a4b49b"/>
+  <path d="M589 316q63-24 129 11l18 229H570Z" fill="#ddd4c0"/>
+  <path d="M812 323q56-24 109 10l19 223H784Z" fill="#999b88"/>
+  <path d="M333 369q-74 14-75 111M721 372q70 7 93 63" fill="none" stroke="#dcb497" stroke-width="30" stroke-linecap="round"/>
+  <g transform="rotate(-3 601 465)">
+    <path d="M149 385l39-9 38 7 39-8 39 8 40-8 39 6 37-6 41 7 37-7 39 5 39-7 37 7 41-7 38 6 41-7 38 8 40-7 38 9 39-6 33 11v234l-34-9-39 8-38-8-41 8-38-7-40 9-39-8-38 7-40-7-39 8-38-7-41 7-37-8-40 8-38-7-40 7-39-8-37 7-40-9-35 7Z" fill="#ef9c86"/>
+    <text x="600" y="497" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-size="83" font-weight="700" letter-spacing="-5" fill="#34352f">MZ 같지 않네요</text>
+  </g>
+</svg>
