@@ -202,6 +202,9 @@
     seen[order[chosen[cur]]] = true;
     paintTone(aph.tone);
     Chime.setMood(order[chosen[cur]]);
+    /* 이 편의 줄만 받아 둔다. 서른 넷을 다 열어 두면 쓰지 않을 소리를
+       받느라 첫 장이 늦게 뜬다. */
+    Voice.warm(aph.voice, aph.lines.length);
     meter();
     openCard(chosen[cur], aph.lines, function () {
       locked = false;
@@ -214,6 +217,7 @@
     shown++;
     if (live) Backdrop.pulse(0.28);
     Chime.ping(shown - 1);
+    Voice.say(aphorism().voice, shown - 1);
     meter();
     plan();
   }
@@ -242,20 +246,26 @@
     var lines = aphorism().lines;
     /* 한 편의 마지막 줄에서는 조금 더 머물렀다가 다음 장으로 건너간다 */
     var closing = shown >= lines.length;
+    var base = closing
+      ? dwell(lines[shown - 1] || "", 1400)
+      : GAP[Math.min(shown - 1, GAP.length - 1)];
+    /* 읽어 주는 소리가 아직 말하는 중이면 그것을 기다린다. 눈이 다음 줄로
+       넘어간 뒤에 앞 줄의 말이 이어지면 글과 소리가 한 줄씩 어긋난다.
+       소리가 없거나 아직 길이를 모르면 0 이 오고, 그때는 글만 보고
+       넘기는 원래의 셈이 그대로 쓰인다. */
     timer = window.setTimeout(
       function () {
         timer = null;
         advance();
       },
-      closing
-        ? dwell(lines[shown - 1] || "", 1400)
-        : GAP[Math.min(shown - 1, GAP.length - 1)],
+      Math.max(base, Voice.remaining()),
     );
   }
 
   function advance() {
     if (phase !== "read" || locked) return;
     stopTimer();
+    Voice.hush();
 
     if (!live && !Chime.isAlive() && Chime.start(order[chosen[0]])) {
       muteBtn.classList.add("is-ready");
@@ -278,6 +288,7 @@
     phase = "done";
     locked = true;
     stopTimer();
+    Voice.hush();
     shutCard(chosen[cur]);
     Chime.close();
     chrome("show");
@@ -293,6 +304,7 @@
   function restart() {
     outro.classList.remove("is-in");
     stopTimer();
+    Voice.hush();
     phase = live ? "pick" : "read";
     chosen = live ? [] : [0, 1, 2];
     cur = -1;
@@ -361,6 +373,7 @@
   /* 탭을 떠나 있는 동안은 멈춘다. 돌아왔을 때 몇 장이 지나가 있으면 안 된다. */
   document.addEventListener("visibilitychange", function () {
     away = document.hidden;
+    Voice.away(away);
     if (away) stopTimer();
     else if (phase === "read" && !locked) plan();
   });
@@ -373,6 +386,7 @@
   muteBtn.addEventListener("click", function (e) {
     e.stopPropagation();
     var off = Chime.mute(!Chime.isMuted());
+    Voice.mute(off);
     muteBtn.setAttribute("aria-pressed", off ? "true" : "false");
     muteBtn.setAttribute("aria-label", off ? "소리 켜기" : "소리 끄기");
   });

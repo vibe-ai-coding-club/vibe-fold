@@ -16,11 +16,17 @@ window.Chime = (function () {
     130.81, 146.83, 174.61, 196.0, 220.0,
   ];
 
+  /* 읽어 주는 소리가 지나가는 동안 드론을 눌러 두는 깊이. 드론은 끊기지
+     않고 계속 울리므로, 열두 자짜리 한 줄은 제 크기로 깔린 드론 아래
+     묻힌다. 끄지는 않는다 — 말이 끝나고 드론이 없으면 바닥이 빠진다. */
+  var DUCK = 0.4;
+
   var ctx = null;
   var master = null;
   var wet = null;
   var drone = null; /* { oscs, gain, filter, root } */
   var muted = false;
+  var ducked = false;
   var alive = false;
   var voices = []; /* 지금 울리고 있는 종들 */
   var dozing = 0; /* 다 잦아들면 컨텍스트를 재우는 타이머 */
@@ -36,6 +42,13 @@ window.Chime = (function () {
 
   function now() {
     return ctx.currentTime;
+  }
+
+  /* 드론이 차오를 자리. 읽어 주는 소리가 지나가는 중이면 그만큼 눌러 둔
+     자리다. 편이 바뀌거나 되감을 때도 이 값으로 돌아와야 한다 — LEVEL 로
+     곧장 돌아가면 말하는 중에 드론이 혼자 올라와 말을 덮는다. */
+  function roof() {
+    return ducked ? LEVEL * DUCK : LEVEL;
   }
 
   /* 울고 있는 종을 거둔다. 뚝 끊으면 딸깍 소리가 나므로 짧게 재워서 보낸다. */
@@ -135,7 +148,7 @@ window.Chime = (function () {
     gain.connect(master);
     gain.connect(wet);
 
-    gain.gain.linearRampToValueAtTime(LEVEL, now() + 4);
+    gain.gain.linearRampToValueAtTime(roof(), now() + 4);
     return { oscs: oscs, gain: gain, filter: filter, root: root };
   }
 
@@ -184,7 +197,7 @@ window.Chime = (function () {
       g.cancelScheduledValues(t);
       g.setValueAtTime(g.value, t);
       g.linearRampToValueAtTime(Math.max(0.0001, g.value * 0.3), t + dip);
-      g.linearRampToValueAtTime(LEVEL, t + dip + 1.4);
+      g.linearRampToValueAtTime(roof(), t + dip + 1.4);
 
       for (var i = 0; i < drone.oscs.length; i++) {
         var f = drone.oscs[i].frequency;
@@ -260,7 +273,20 @@ window.Chime = (function () {
       var t = now();
       drone.gain.gain.cancelScheduledValues(t);
       drone.gain.gain.setValueAtTime(drone.gain.gain.value, t);
-      drone.gain.gain.linearRampToValueAtTime(LEVEL, t + 2);
+      drone.gain.gain.linearRampToValueAtTime(roof(), t + 2);
+    },
+
+    /* 말이 지나가는 동안 드론을 눌러 둔다. 내려가는 것은 빠르게, 올라오는
+       것은 느리게 — 말이 시작될 때는 이미 자리를 비워 두어야 하고, 말이
+       끝난 뒤에는 드론이 돌아오는 것이 들리지 않아야 한다. */
+    duck: function (on) {
+      ducked = !!on;
+      if (!alive || !drone) return;
+      var t = now();
+      var g = drone.gain.gain;
+      g.cancelScheduledValues(t);
+      g.setValueAtTime(g.value, t);
+      g.linearRampToValueAtTime(roof(), t + (ducked ? 0.22 : 0.9));
     },
 
     mute: function (on) {
