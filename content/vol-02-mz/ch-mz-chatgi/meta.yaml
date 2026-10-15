@@ -1,0 +1,7 @@
+id: ch-mz-chatgi
+slug: mz-chatgi
+title: MZ 찾기
+creator: da-in
+thumbnail: thumb.svg
+description: |
+  지뢰찾기다. 지뢰가 MZ다. 닫힌 칸에 보이는 소지품으로 이웃의 MZ를 짐작하고, 숫자로 주변을 좁혀 18×12 격자를 연다.

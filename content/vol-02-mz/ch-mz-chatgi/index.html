@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>MZ 찾기</title>
+    <link rel="stylesheet" href="./style.css?v=11" />
+  </head>
+  <body>
+    <div class="stage">
+    <header class="title-art">
+      <h1 class="visually-hidden">MZ 찾기</h1>
+      <canvas id="pixel-title" aria-hidden="true"></canvas>
+    </header>
+
+    <div class="windows-row">
+    <div class="win95 win95--game" role="application" aria-label="MZ 찾기">
+      <div class="titlebar">
+        <span class="titlebar-name">mz_chatgi.exe</span>
+        <div class="title-actions">
+          <button type="button" class="tb-btn" id="mute" aria-pressed="false" title="소리">소리</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="hud">
+          <div class="lcd" id="mine-count" aria-label="남은 MZ">028</div>
+          <button type="button" id="face" data-face="idle" aria-label="다시 시작"></button>
+          <div class="lcd" id="timer" aria-label="경과 초">000</div>
+        </div>
+        <div id="board" role="grid" aria-label="12곱하기 18 격자"></div>
+      </div>
+    </div>
+
+    <div class="windows-col">
+      <div class="win95 win95--rules" aria-label="게임 규칙">
+        <div class="titlebar">
+          <span class="titlebar-name">readme.txt</span>
+        </div>
+        <div class="rules-body">
+          <p class="lead">숨어있는 MZ를 찾아라!</p>
+          <p class="goal">MZ의 물건 근처에는 MZ가 숨어있어요! 아이템이 MZ의 것인지 추측해보세요.</p>
+          <p class="lead">조작법</p>
+          <p class="controls">
+            <span class="desktop-only">열기 — <kbd>클릭</kbd></span>
+            <span class="mobile-only">열기 — <kbd>탭</kbd></span>
+            <span class="desktop-only">MZ 표시 — <kbd>우클릭</kbd></span>
+            <span class="mobile-only">MZ 표시 — <kbd>길게 누르기</kbd></span>
+            <span>다시하기 — <kbd>가운데 얼굴 누르기</kbd></span>
+          </p>
+        </div>
+      </div>
+
+      <div class="win95 win95--detail" aria-label="칸 설명" aria-live="polite">
+        <div class="titlebar">
+          <span class="titlebar-name">tip.txt</span>
+        </div>
+        <div class="detail-body">
+          <div class="detail-preview" id="detail-preview" hidden>
+            <img id="detail-icon" alt="" width="32" height="32" />
+            <img id="detail-icon-2" alt="" width="32" height="32" hidden />
+          </div>
+          <p id="detail-text">칸 위에 마우스를 올리면 소지품·MZ 아이콘과 한 줄 설명이 나옵니다.</p>
+        </div>
+      </div>
+    </div>
+    </div>
+    </div>
+
+    <script src="./title.js?v=11"></script>
+    <script src="./sprites.js?v=11"></script>
+    <script src="./items.js?v=11"></script>
+    <script src="./lore.js?v=11"></script>
+    <script src="./music.js?v=11"></script>
+    <script src="./game.js?v=11"></script>
+  </body>
+</html>
