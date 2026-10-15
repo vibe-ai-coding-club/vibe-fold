@@ -1,0 +1,386 @@
+@font-face {
+  font-family: "Gowun Batang";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/gowun-batang-400.woff2") format("woff2");
+}
+
+:root {
+  --ink: #f2ece4;
+  --dim: rgba(242, 236, 228, 0.42);
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* 위에 높이 74px 짜리 내비게이션이 떠 있다. 카드가 그 아래에서 시작하게 민다.
+	   stage.js 의 CHROME 과 같은 값이어야 한다 */
+  --chrome: 74px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #080b16;
+  color: var(--ink);
+  font-family:
+    "Gowun Batang", "AppleMyungjo", "Apple SD Gothic Neo", "Nanum Myeongjo",
+    Batang, serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+}
+
+/* WebGL 을 못 쓰는 환경. 카드 없이 색과 글만 남는다 */
+body.is-flat #bg {
+  display: none;
+}
+
+body.is-flat {
+  background: radial-gradient(
+    130% 100% at 50% 42%,
+    var(--flat-2, #2b3663) 0%,
+    var(--flat-1, #080b16) 72%
+  );
+  transition: background 1.6s var(--ease);
+}
+
+/* ── 글자판. 카드 위에 겹쳐 뜨는 제목·힌트·진행 막대 ───────── */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  row-gap: clamp(0.6rem, 1.8vh, 1.1rem);
+  padding: calc(var(--chrome) + 0.75rem) clamp(0.9rem, 3.5vw, 3.25rem)
+    clamp(1.1rem, 3.4vh, 2.2rem);
+  user-select: none;
+  outline: none;
+  pointer-events: none;
+}
+
+/* 읽는 동안에는 어디를 눌러도 다음 줄로 넘어간다 */
+body.is-reading .stage {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.title {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(0.92rem, 3.4vw, 1.15rem);
+  letter-spacing: 0.44em;
+  text-indent: 0.44em;
+  color: rgba(242, 236, 228, 0.76);
+  text-shadow: 0 0.08em 1.2em rgba(0, 0, 0, 0.6);
+  transition: opacity 0.9s var(--ease);
+}
+
+body.is-reading .title {
+  opacity: 0.34;
+}
+
+/* 카드가 놓이는 자리. 그림은 WebGL 이 그리고, 여기는 자리만 잡는다 */
+.deck {
+  position: relative;
+}
+
+.hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.78rem;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: var(--dim);
+  white-space: nowrap;
+  animation: breathe 3.4s ease-in-out infinite;
+  transition: opacity 0.5s var(--ease);
+}
+
+/* 애니메이션이 opacity 를 계속 덮어쓰므로, 숨길 때는 애니메이션부터 끈다 */
+.hint.is-gone {
+  animation: none;
+  opacity: 0;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.32;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+.meter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.7s var(--ease);
+}
+
+/* 고르는 동안에는 셀 것이 없다 */
+body.is-picking .meter {
+  opacity: 0;
+}
+
+.meter__bar {
+  position: relative;
+  width: clamp(3.5rem, 18vw, 7rem);
+  height: 1px;
+  background: rgba(242, 236, 228, 0.18);
+  overflow: hidden;
+}
+
+.meter__bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--ink);
+  transition: width 0.6s var(--ease);
+}
+
+/* ── 카드를 짚는 자리 ──────────────────────────────────────── */
+
+.picks {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.picks.is-off {
+  visibility: hidden;
+}
+
+.pick {
+  position: absolute;
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  pointer-events: auto;
+  outline: none;
+  /* 손가락으로 카드를 끌 때 화면이 따라 움직이지 않게 */
+  touch-action: none;
+}
+
+.pick:disabled {
+  pointer-events: none;
+  cursor: default;
+}
+
+/* 카드 그림은 WebGL 안에 있어서 포커스를 받은 티를 CSS 로 덧그린다 */
+.pick:focus-visible {
+  box-shadow:
+    0 0 0 2px rgba(242, 236, 228, 0.9),
+    0 0 1.6em rgba(242, 236, 228, 0.4);
+}
+
+/* ── WebGL 이 없을 때 글만 띄우는 자리 ─────────────────────── */
+
+.verse {
+  display: none;
+}
+
+body.is-flat .verse {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+  width: min(36rem, 86vw);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.7rem, 2.2vh, 1.15rem);
+  text-align: center;
+  transition: opacity 0.42s var(--ease);
+  pointer-events: none;
+}
+
+.verse.is-leaving {
+  opacity: 0;
+}
+
+.line {
+  margin: 0;
+  font-size: clamp(1.35rem, 5.2vw, 2.2rem);
+  font-weight: 400;
+  line-height: 1.62;
+  letter-spacing: -0.015em;
+  word-break: keep-all;
+  text-wrap: balance;
+  text-shadow: 0 0.08em 1.4em rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transform: translateY(0.7em);
+  transition:
+    opacity 0.9s var(--ease),
+    transform 0.9s var(--ease);
+}
+
+.line.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* 지난 줄은 조금 물러서서, 지금 줄이 앞에 오게 한다 */
+.line.is-past {
+  opacity: 0.46;
+}
+
+/* ── 마침 ──────────────────────────────────────────────────── */
+
+.outro {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-content: center;
+  gap: 1.6rem;
+  justify-items: center;
+  text-align: center;
+  padding: var(--chrome) 1.5rem 1.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s var(--ease);
+}
+
+.outro.is-in {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.outro__mark {
+  margin: 0;
+  font-size: clamp(1.1rem, 4vw, 1.5rem);
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;
+  color: var(--dim);
+}
+
+.outro__count {
+  margin: 0;
+  font-size: clamp(1.5rem, 5.5vw, 2.1rem);
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+.again {
+  appearance: none;
+  background: transparent;
+  border: 1px solid rgba(242, 236, 228, 0.3);
+  border-radius: 999px;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  padding: 0.7rem 1.6rem;
+  cursor: pointer;
+  transition:
+    border-color 0.3s var(--ease),
+    background 0.3s var(--ease);
+}
+
+.again:hover,
+.again:focus-visible {
+  border-color: var(--ink);
+  background: rgba(242, 236, 228, 0.08);
+}
+
+/* ── 음소거 — 소리가 나는 작품이면 끌 수 있어야 한다 ───────── */
+
+.mute {
+  position: fixed;
+  z-index: 4;
+  right: clamp(0.9rem, 3vw, 1.6rem);
+  bottom: clamp(0.9rem, 3vh, 1.6rem);
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s var(--ease);
+}
+
+.mute.is-ready {
+  opacity: 0.4;
+  pointer-events: auto;
+}
+
+.mute.is-ready:hover,
+.mute.is-ready:focus-visible {
+  opacity: 0.9;
+}
+
+.mute svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mute .mute__horn {
+  fill: var(--ink);
+  stroke-width: 1;
+}
+
+.mute .mute__off {
+  display: none;
+}
+
+.mute[aria-pressed="true"] .mute__on {
+  display: none;
+}
+
+.mute[aria-pressed="true"] .mute__off {
+  display: inline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line,
+  .verse,
+  .outro,
+  .title,
+  .meter,
+  .meter__bar i,
+  .mute {
+    transition-duration: 0.01ms;
+  }
+  .hint {
+    animation: none;
+    opacity: 0.5;
+  }
+}
