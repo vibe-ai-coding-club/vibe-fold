@@ -221,6 +221,7 @@
   }
   function showEnding() {
     stopVoice(); setPhase('ending'); ending.hidden = false; gsap.set(ending, {autoAlpha: 1});
+    window.parent.postMessage({from: 'vibe-fold:chapter', chrome: 'show'}, '*');
     gsap.set(narrative, {autoAlpha: 0}); replay.hidden = true; pause.hidden = true;
     if (keyboard) $('#again').focus({preventScroll: true});
   }
@@ -229,6 +230,7 @@
     const opening = phase === 'intro' ? intro : ending;
     timelines.forEach(timeline => timeline.kill()); timelines.clear();
     stopVoice(); paused = false; updatePause(); participate(); setPhase('transition');
+    window.parent.postMessage({from: 'vibe-fold:chapter', chrome: 'dim'}, '*');
     const timeline = makeTimeline(() => { opening.hidden = true; startPrologue(); });
     timeline.to(opening, {autoAlpha: 0, duration: fade(.5)}); run(timeline);
   }

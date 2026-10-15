@@ -8,6 +8,8 @@ shelf: 1
 summary: |
   줄임말이나 밈처럼 잠깐 쓰이다 사라지는 말을 모아 볼 거예요. 십 년 뒤에는 아무도 기억하지 못할 표현을 지금 붙잡아 두려고요.
 date: 2026
-status: coming_soon
+status: published
 featured: false
-chapters: []
+cover: ch-mz-gatji-anhneyo
+chapters:
+  - ch-mz-gatji-anhneyo
