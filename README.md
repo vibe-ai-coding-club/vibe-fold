@@ -21,9 +21,10 @@ Site shell is Astro; each chapter is an independent interactive artwork loaded i
 
 ## Develop
 
-Requires Node.js `>=22.12`.
+Requires Node.js `>=22.12`. `.nvmrc` pins the 22 line, so `nvm use` picks it up.
 
 ```bash
+nvm use      # or: nvm install
 npm install
 npm run dev
 ```
