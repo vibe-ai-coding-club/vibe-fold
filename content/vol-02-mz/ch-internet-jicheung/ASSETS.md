@@ -15,7 +15,7 @@
 | 3 | `assets/frame-oldphone.webp` | 유물 틀 · 2010년대 초 · 초기 스마트폰 | 제각각 | 필수 ✅ |
 | 4 | `assets/frame-smartphone.webp` | 유물 틀 · 2010년대 후반 · 얇은 스마트폰 | 제각각 | 필수 ✅ |
 | 5 | `assets/frame-bubble.webp` | 유물 틀 · 2020년대 초와 지표 · 말풍선 화석 | 제각각 | 필수 ✅ |
-| 6 | `thumb.webp` | 목록 카드 썸네일 | 1200 × 750 | 필수 ✅ |
+| 6 | `thumb.webp` | 목록 카드 썸네일 · Vol.2 표지 | 1586 × 992 | 필수 ✅ |
 | 7 | `assets/tool-pickaxe.webp` | 곡괭이 · 탭한 자리에서 휘두름 | 112px 안 | 선택 ✅ |
 | 8 | `assets/junk-earbuds.webp` | 잡동사니 · 2020년대 초 · 무선 이어폰 | 112px 안 | 선택 ✅ |
 | 9 | `assets/junk-tanghulu.webp` | 잡동사니 · 2020년대 초 · 탕후루 | 112px 안 | 선택 ✅ |
@@ -90,7 +90,7 @@ sprites: ['frame-bubble', 'frame-crt', 'tool-pickaxe'],
 
 말풍선(5번)만 화면 면 색이 `#e9e2d4`(밝은 돌색)다.
 
-**생성 크기** — 모든 프롬프트는 1024 × 1024 정사각으로 뽑는다(썸네일만 1536 × 1024). 생성 도구는 정확한 픽셀 수를 못 지키니 크게 뽑고 아래처럼 줄인다.
+**생성 크기** — 유물과 도구는 1024 × 1024 정사각으로 뽑는다. 생성 도구는 정확한 픽셀 수를 못 지키니 크게 뽑고 아래처럼 줄인다. 썸네일은 6번의 최종 규격을 따른다.
 
 ### 다듬기
 
@@ -100,7 +100,7 @@ sprites: ['frame-bubble', 'frame-crt', 'tool-pickaxe'],
 2. **최근접 이웃(nearest neighbor)** 방식으로 원본 크기까지 줄인다. 다른 방식으로 줄이면 색이 섞인다.
 3. 팔레트 밖으로 나간 색을 가장 가까운 팔레트 색으로 맞춘다. (Aseprite, Piskel 등)
 4. 원본 크기에서 깨진 픽셀을 손으로 고친다. 특히 **유물 틀의 화면 면은 위 좌표대로 한 색으로**.
-5. WebP 무손실로 저장한다. PNG는 커밋하지 않는다.
+5. 유물 스프라이트는 WebP 무손실로 저장한다. 썸네일 저장 품질은 6번을 따른다. PNG는 커밋하지 않는다.
 
 ImageMagick과 cwebp가 있다면 1·2·5번은 이렇게 한다.
 
@@ -253,37 +253,34 @@ OUTPUT
 
 ---
 
-## 6. `thumb.webp` — 목록 카드 썸네일 ✅
+## 6. `thumb.webp` — 목록 카드 썸네일 · Vol.2 표지 ✅
 
 | 항목 | 값 |
 |---|---|
-| 비율 | **16 : 10** 가로 |
-| 최종 | 1200 × 750, WebP 30KB |
-| 생성 크기 | 1536 × 1024 → 위아래를 잘라 16 : 10 |
-| 읽혀야 하는 폭 | **152px**. 목록 카드는 세로에 맞춰 키운 뒤 좌우를 자른다 |
+| 비율 | 약 **16 : 10** 가로 |
+| 최종 | 1586 × 992, WebP 품질 93, 약 129KB |
+| 생성 원본 | 1586 × 992, PNG. 원본 해상도를 유지해 WebP로 변환 |
+| 읽혀야 하는 폭 | **152px**. 세로 카드에서 좌우가 잘려도 중앙의 `OTL`이 읽혀야 함 |
+| 표지 연결 | `content/vol-02-mz/volume.yaml`의 `cover: ch-internet-jicheung` |
+| 생성 방식 | 내장 이미지 생성 도구. 승인된 OTL 시안을 참조해 선명도 개선 |
 
-**방향** — Vol.1 표지처럼 주인공 하나, 넓은 여백, 바탕색 하나에 포인트색 하나. 단면도에 유물을 여러 개 늘어놓은 1차안은 작게 줄이면 갈색 줄무늬만 남아서 버렸다.
+웹용 변환: `cwebp -q 93 -m 6 -sharp_yuv input.png -o thumb.webp`. 원본 크기와 선명한 글자를 유지하면서 파일 크기를 줄인다.
 
-```
-Minimal pixel art poster, chunky low resolution (about 160x100 pixels), every pixel a crisp square.
+**방향** — 흙에 반쯤 묻힌 베이지 CRT 하나를 크게 잡고, 초록 화면의 `OTL`로 옛날 인터넷 밈을 발굴한다는 설정을 보여 준다. 짙은 보라색 동굴, 따뜻한 흙 지층, 위에서 내려오는 금빛 빛줄기, 굵고 또렷한 픽셀 표현을 유지한다. 단면도에 유물을 여러 개 늘어놓았던 초기안은 작은 카드에서 갈색 줄무늬만 남아서 버렸다.
 
-Underground darkness. Almost the whole image is very dark purple-black soil #1b1420 and #2a2230,
-with only a faint hint of horizontal soil layers.
-At the very top, a small opening in the ground lets in a single narrow beam of warm light #ffd34d
-that falls straight down.
-At the bottom center, half buried in dirt, lies one bulky old beige CRT computer monitor.
-Its blank screen glows softly pale green #b8d8b0. The light beam lands on it.
-A few dust specks float in the beam.
+**최종 프롬프트** — 승인된 OTL 시안을 편집 대상으로 전달했다.
 
-Only one object. Lots of empty dark space. Quiet, nostalgic mood.
+```text
+Use case: precise-object-edit / quality refinement.
+Asset type: final website thumbnail and Vol.2 cover illustration.
+Input image 1 is the EDIT TARGET: the approved pixel-art thumbnail of a half-buried CRT displaying OTL.
 
-STYLE
-- Every pixel the same size. No anti-aliasing, no smooth gradients (use 2–3 stepped tones for the light).
-- Limited palette: dark purple-blacks, one warm yellow, one pale green, beige for the monitor.
+Improve ONLY rendering clarity and output resolution of this approved image. Produce a high-quality 2560x1600 pixel landscape 16:10 image. Keep the image immediately recognizable as the same illustration: same centered beige CRT, same three-quarter angle, same half-buried composition, same green screen with large dark "OTL", same purple-black cavern, layered warm soil, warm golden light shaft from the opening above, and square floating dust. Preserve their relative placement, scale, warm nostalgic mood, and palette.
 
-OUTPUT
-- Landscape 1536x1024. The monitor sits slightly below center; keep the center of the image clear of clutter.
-- No text, no letters, no numbers, no logos, no UI.
+The user wants the approved OTL concept just a little sharper and cleaner, not a redesign. Retain deliberate pixel art with crisp coherent square pixels and stepped edges. Clean fuzzy pixel boundaries and compression-like smearing. Render the CRT silhouette, soil clusters, and text more cleanly. Keep controlled pixel-scale lighting and subtle texture; do not add fine noisy details or new objects. Keep all three letters readable in a centered portrait crop used for a website cover.
+
+Text, exactly verbatim: "OTL". Uppercase O, T, L; no other text anywhere. Keep the current large blocky letter shapes and their position. Never change the letters to MZ.
+No title, captions, interface, watermark, logo, decorative border, or extra devices. Opaque background. Do not turn into photorealism, smooth vector art, or painterly illustration. Preserve the accepted composition.
 ```
 
 ---
